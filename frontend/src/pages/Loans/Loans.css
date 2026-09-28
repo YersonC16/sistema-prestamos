@@ -1,0 +1,31 @@
+.loans-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.loans-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.loans-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.loans-error {
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .loans-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
