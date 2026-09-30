@@ -32,6 +32,12 @@ function LoanHistoryModal({ loan, onClose }: LoanHistoryModalProps) {
           <dd>{loan.asset_name ?? `#${loan.asset_id}`}</dd>
           <dt>Responsable</dt>
           <dd>{loan.responsible_name}</dd>
+          {loan.responsible_document && (
+            <>
+              <dt>Documento</dt>
+              <dd>{loan.responsible_document}</dd>
+            </>
+          )}
           <dt>Entregado por</dt>
           <dd>{loan.registered_by_name ?? "—"}</dd>
           {loan.returned_by_name && (

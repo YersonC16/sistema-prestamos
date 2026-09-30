@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type FormEvent } from "react";
+
 import Alert from "@/components/common/Alert";
 import Badge from "@/components/common/Badge";
 import Button from "@/components/common/Button";
@@ -27,6 +28,9 @@ import {
 } from "@/utils/format";
 import { LOAN_STATUS } from "@/utils/labels";
 import LoanHistoryModal from "./LoanHistoryModal";
+import { responsibleService } from "@/services/responsibleService";
+import type { Responsible } from "@/types/responsible";
+import CreateResponsibleModal from "./CreateResponsibleModal";
 
 function Loans() {
   const { user } = useAuth();
@@ -54,7 +58,15 @@ function Loans() {
   // Registrar préstamo
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [assetId, setAssetId] = useState("");
-  const [responsible, setResponsible] = useState("");
+  const fetchResponsibles = useCallback(
+    () => responsibleService.getAll(true),
+    [],
+  );
+  const { data: responsibles, refetch: refetchResponsibles } =
+    useFetch<Responsible[]>(fetchResponsibles);
+
+  const [responsibleId, setResponsibleId] = useState("");
+  const [isNewResponsibleOpen, setIsNewResponsibleOpen] = useState(false);
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
   const [createError, setCreateError] = useState("");
@@ -83,7 +95,7 @@ function Loans() {
   const closeCreate = () => {
     setIsCreateOpen(false);
     setAssetId("");
-    setResponsible("");
+    setResponsibleId("");
     setExpectedDate("");
     setNotes("");
     setCreateError("");
@@ -92,8 +104,7 @@ function Loans() {
   const handleCreate = async (event: FormEvent) => {
     event.preventDefault();
     if (!assetId) return setCreateError("Selecciona el activo");
-    if (responsible.trim().length < 2)
-      return setCreateError("Indica el nombre de quien recibe el activo");
+    if (!responsibleId) return setCreateError("Selecciona el responsable");
     if (!expectedDate)
       return setCreateError("Indica la fecha prevista de devolución");
     if (expectedDate < todayInputValue())
@@ -106,7 +117,7 @@ function Loans() {
     try {
       await loanService.create({
         asset_id: Number(assetId),
-        responsible_name: responsible.trim(),
+        responsible_id: Number(responsibleId),
         expected_return_date: endOfDayIso(expectedDate),
         notes: notes.trim() || undefined,
       });
@@ -299,13 +310,30 @@ function Loans() {
               </option>
             ))}
           </Select>
-          <Input
-            label="Responsable que recibe"
-            value={responsible}
-            onChange={(e) => setResponsible(e.target.value)}
-            placeholder="Nombre de quien recibe"
-            required
-          />
+          <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <Select
+                label="Responsable que recibe"
+                value={responsibleId}
+                onChange={(e) => setResponsibleId(e.target.value)}
+                required
+              >
+                <option value="">Selecciona un responsable</option>
+                {(responsibles ?? []).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.full_name} · {r.document_type} {r.document_number}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsNewResponsibleOpen(true)}
+            >
+              + Nuevo
+            </Button>
+          </div>
           <Input
             label="Fecha prevista de devolución"
             type="date"
@@ -379,6 +407,14 @@ function Loans() {
           </form>
         )}
       </Modal>
+      <CreateResponsibleModal
+        isOpen={isNewResponsibleOpen}
+        onClose={() => setIsNewResponsibleOpen(false)}
+        onCreated={(responsible) => {
+          refetchResponsibles();
+          setResponsibleId(String(responsible.id));
+        }}
+      />
 
       {historyLoan && (
         <LoanHistoryModal

@@ -12,7 +12,8 @@ from app.core.errors import DomainError
 # Importar los modelos los registra en Base.metadata (lo necesita create_all)
 from app.models import loan as _loan_model  # noqa: F401
 from app.models import loan_history as _loan_history_model  # noqa: F401
-from app.routers import loans
+from app.models import responsible as _responsible_model  # noqa: F401
+from app.routers import loans, responsibles
 from app.services.overdue_checker import start_overdue_checker_thread
 
 IS_TESTING = os.getenv("TESTING") == "true"
@@ -52,6 +53,7 @@ async def domain_error_handler(request: Request, exc: DomainError):
 
 
 app.include_router(loans.router)
+app.include_router(responsibles.router)
 
 
 @app.get("/health")

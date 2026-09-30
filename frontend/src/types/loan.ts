@@ -5,7 +5,9 @@ export interface Loan {
   id: number;
   asset_id: number;
   asset_name: string | null;
+  responsible_id: number | null;
   responsible_name: string;
+  responsible_document: string | null;
   notes: string | null;
   loan_date: string;
   expected_return_date: string;
@@ -19,7 +21,7 @@ export interface Loan {
 
 export interface LoanCreatePayload {
   asset_id: number;
-  responsible_name: string;
+  responsible_id: number;
   expected_return_date: string;
   notes?: string;
 }

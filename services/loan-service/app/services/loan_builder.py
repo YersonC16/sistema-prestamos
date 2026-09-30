@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.models.loan import Loan, LoanStatus
+from app.models.responsible import Responsible
 
 
 class LoanBuilder:
@@ -9,7 +10,9 @@ class LoanBuilder:
     def __init__(self):
         self._asset_id: int | None = None
         self._asset_name: str | None = None
+        self._responsible_id: int | None = None
         self._responsible_name: str | None = None
+        self._responsible_document: str | None = None
         self._loan_date: datetime | None = None
         self._expected_return_date: datetime | None = None
         self._notes: str | None = None
@@ -24,10 +27,10 @@ class LoanBuilder:
         self._asset_name = name
         return self
 
-    def with_responsible(self, name: str) -> "LoanBuilder":
-        if not name or not name.strip():
-            raise ValueError("El responsable es obligatorio")
-        self._responsible_name = name.strip()
+    def with_responsible(self, responsible: Responsible) -> "LoanBuilder":
+        self._responsible_id = responsible.id
+        self._responsible_name = responsible.full_name
+        self._responsible_document = f"{responsible.document_type} {responsible.document_number}"
         return self
 
     def with_loan_date(self, date: datetime) -> "LoanBuilder":
@@ -52,6 +55,7 @@ class LoanBuilder:
     def build(self) -> Loan:
         required = [
             self._asset_id,
+            self._responsible_id,
             self._responsible_name,
             self._loan_date,
             self._expected_return_date,
@@ -62,7 +66,9 @@ class LoanBuilder:
         return Loan(
             asset_id=self._asset_id,
             asset_name=self._asset_name,
+            responsible_id=self._responsible_id,
             responsible_name=self._responsible_name,
+            responsible_document=self._responsible_document,
             notes=self._notes,
             loan_date=self._loan_date,
             expected_return_date=self._expected_return_date,

@@ -1,16 +1,14 @@
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.loan import LoanStatus
-
-Person = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=150)]
 
 
 class LoanCreate(BaseModel):
     asset_id: int
-    responsible_name: Person
+    responsible_id: int
     expected_return_date: datetime
     notes: str | None = Field(default=None, max_length=255)
 
@@ -32,7 +30,9 @@ class LoanResponse(BaseModel):
     id: int
     asset_id: int
     asset_name: str | None = None
+    responsible_id: int | None = None
     responsible_name: str
+    responsible_document: str | None = None
     notes: str | None = None
     loan_date: datetime
     expected_return_date: datetime

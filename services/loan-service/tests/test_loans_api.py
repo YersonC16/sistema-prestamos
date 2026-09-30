@@ -24,10 +24,20 @@ def _auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
-def _payload(asset_id=1, days=3):
-    due = datetime.now(timezone.utc) + timedelta(days=days)
-    return {"asset_id": asset_id, "responsible_name": "Juan Pérez", "expected_return_date": due.isoformat()}
+@pytest.fixture
+def responsible_id(client, make_token):
+    token = make_token()
+    response = client.post(
+        "/responsibles/",
+        json={"full_name": "Juan Pérez", "document_type": "CC", "document_number": "123456", "phone": "3001234567"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    return response.json()["id"]
 
+
+def _payload(responsible_id, asset_id=1, days=3):
+    due = datetime.now(timezone.utc) + timedelta(days=days)
+    return {"asset_id": asset_id, "responsible_id": responsible_id, "expected_return_date": due.isoformat()}
 
 def test_almacenista_registra_prestamo_y_queda_trazado(client, make_token, fake_external_services):
     token = make_token()

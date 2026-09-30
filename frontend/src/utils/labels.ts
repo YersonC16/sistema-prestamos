@@ -72,6 +72,13 @@ const ACTIONS: Record<string, LabelTone> = {
   password_restablecida: { label: "Contraseña restablecida", tone: "warning" },
 };
 
+export const DOCUMENT_TYPE_LABEL: Record<string, string> = {
+  CC: "Cédula de ciudadanía",
+  TI: "Tarjeta de identidad",
+  CE: "Cédula de extranjería",
+  PASAPORTE: "Pasaporte",
+};
+
 export function actionMeta(action: string): LabelTone {
   return (
     ACTIONS[action] ?? { label: action.replace(/_/g, " "), tone: "neutral" }

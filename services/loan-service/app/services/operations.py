@@ -1,6 +1,7 @@
 from app.core.errors import BusinessRuleError, ConflictError, ExternalServiceError, NotFoundError
 from app.core.timeutils import to_naive_utc, utc_now_naive
 from app.models.loan import Loan, LoanStatus
+from app.models.responsible import Responsible
 from app.services.asset_client import AssetServiceClient, AssetServiceError
 from app.services.loan_builder import LoanBuilder
 
@@ -12,7 +13,7 @@ class OperationContext:
 
     def __init__(self, db, user: dict, data: dict | None = None, token: str | None = None):
         self.db = db
-        self.user = user  # {"id": int, "name": str, "role": str}
+        self.user = user
         self.data = data or {}
         self.token = token
 
@@ -32,6 +33,14 @@ class CreateLoanOperation(Operation):
     def execute(self, context: OperationContext) -> Loan:
         data = context.data
 
+        responsible = (
+            context.db.query(Responsible).filter(Responsible.id == data["responsible_id"]).first()
+        )
+        if responsible is None:
+            raise BusinessRuleError("El responsable seleccionado no existe")
+        if not responsible.is_active:
+            raise BusinessRuleError("El responsable seleccionado está desactivado")
+
         try:
             available = AssetServiceClient(context.token).get_available_assets()
         except AssetServiceError as exc:
@@ -41,8 +50,6 @@ class CreateLoanOperation(Operation):
         if asset is None:
             raise BusinessRuleError("El activo no está disponible para préstamo")
 
-        # Evita dos préstamos abiertos del mismo activo aunque el estado
-        # del activo (que se actualiza por el broker) aún no haya cambiado
         open_loan = (
             context.db.query(Loan).filter(Loan.asset_id == asset["id"], Loan.status.in_(OPEN_STATUSES)).first()
         )
@@ -54,8 +61,8 @@ class CreateLoanOperation(Operation):
                 LoanBuilder()
                 .with_asset(asset["id"])
                 .with_asset_name(asset["name"])
-                .with_responsible(data["responsible_name"])
-                .with_loan_date(utc_now_naive())  # la fecha la fija el servidor
+                .with_responsible(responsible)
+                .with_loan_date(utc_now_naive())
                 .with_expected_return(to_naive_utc(data["expected_return_date"]))
                 .with_notes(data.get("notes"))
                 .with_registered_by(context.user["id"], context.user["name"])
