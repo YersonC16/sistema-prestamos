@@ -1,14 +1,16 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, type FormEvent } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import Alert from "@/components/common/Alert";
+import Button from "@/components/common/Button";
 import Card from "@/components/common/Card";
 import Input from "@/components/common/Input";
-import Button from "@/components/common/Button";
 import logo from "@/assets/logo";
 import { useAuth } from "@/hooks/useAuth";
+import { getErrorMessage } from "@/utils/errors";
 import "./Login.css";
 
 function Login() {
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -16,15 +18,19 @@ function Login() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  if (user) {
+    return <Navigate to="/panel" replace />;
+  }
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setError("");
     setIsSubmitting(true);
     try {
-      await login({ username: email, password });
-      navigate("/inventario");
-    } catch {
-      setError("Correo o contraseña incorrectos");
+      await login({ username: email.trim(), password });
+      navigate("/panel");
+    } catch (err) {
+      setError(getErrorMessage(err, "No se pudo iniciar sesión"));
     } finally {
       setIsSubmitting(false);
     }
@@ -39,7 +45,7 @@ function Login() {
             alt="Logo de la organización"
             className="login-logo"
           />
-          <h2>Sistema de Préstamos</h2>
+          <h2>Control de préstamos</h2>
           <p className="login-subtitle">Sede Concreto</p>
         </div>
 
@@ -50,6 +56,7 @@ function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="usuario@concreto.com"
+            autoComplete="username"
             required
           />
           <Input
@@ -58,9 +65,10 @@ function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
+            autoComplete="current-password"
             required
           />
-          {error && <p className="login-error">{error}</p>}
+          {error && <Alert>{error}</Alert>}
           <Button type="submit" isLoading={isSubmitting}>
             Iniciar sesión
           </Button>

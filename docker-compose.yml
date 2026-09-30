@@ -85,8 +85,8 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_ASSET_SERVICE_URL: http://localhost:8001
-        VITE_LOAN_SERVICE_URL: http://localhost:8002
+        VITE_ASSET_SERVICE_URL: /api/assets
+        VITE_LOAN_SERVICE_URL: /api/loans
     container_name: prestamos_frontend
     restart: always
     ports:

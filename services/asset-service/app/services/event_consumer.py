@@ -1,37 +1,85 @@
 import json
-import time
 import threading
+import time
+from datetime import datetime
+
 import pika
+
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.models.asset import Asset, AssetStatus
+from app.services.audit_service import record_audit
 
 EXCHANGE_NAME = "prestamos_events"
 QUEUE_NAME = "asset_status_queue"
 
-def _handle_message(ch, method, properties, body):
-    data = json.loads(body)
-    asset_id = data.get("asset_id")
-    routing_key = method.routing_key
 
+def _format_date(value: str | None) -> str:
+    if not value:
+        return "sin fecha"
+    try:
+        return datetime.fromisoformat(value).strftime("%d/%m/%Y")
+    except ValueError:
+        return value
+
+
+def _apply_event(routing_key: str, data: dict) -> None:
     db = SessionLocal()
     try:
-        asset = db.query(Asset).filter(Asset.id == asset_id).first()
-        if asset:
-            if routing_key == "prestamo.creado":
-                asset.status = AssetStatus.PRESTADO
-            elif routing_key == "prestamo.devuelto":
+        asset = db.query(Asset).filter(Asset.id == data.get("asset_id")).first()
+        if asset is None:
+            print(f"[broker] Evento {routing_key} ignorado: el activo {data.get('asset_id')} no existe")
+            return
+
+        actor = data.get("registered_by") or data.get("returned_by") or "Sistema"
+
+        if routing_key == "prestamo.creado":
+            asset.status = AssetStatus.PRESTADO
+            action = "prestamo_creado"
+            detail = (
+                f"Prestado a {data.get('responsible_name')}. "
+                f"Devolución prevista: {_format_date(data.get('expected_return_date'))}"
+            )
+        elif routing_key == "prestamo.devuelto":
+            late = " (fuera de plazo)" if data.get("was_late") else ""
+            if data.get("condition") == "con_novedad":
+                asset.status = AssetStatus.MANTENIMIENTO
+                action = "devolucion_con_novedad"
+                detail = f"Devuelto por {data.get('responsible_name')}{late} con novedad: {data.get('notes')}"
+            else:
                 asset.status = AssetStatus.DISPONIBLE
-            db.commit()
-            print(f"[broker] Activo {asset_id} actualizado a estado: {asset.status}")
+                action = "prestamo_devuelto"
+                detail = f"Devuelto por {data.get('responsible_name')}{late} en buen estado"
+        elif routing_key == "prestamo.atrasado":
+            action = "prestamo_atrasado"
+            detail = (
+                f"Préstamo de {data.get('responsible_name')} vencido el "
+                f"{_format_date(data.get('expected_return_date'))} sin devolución"
+            )
+            actor = "Sistema"
+        else:
+            return
+
+        db.commit()
+        record_audit(db, "asset", asset.id, action, detail, actor, None)
+        print(f"[broker] Activo {asset.id}: {action}")
     finally:
         db.close()
 
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+def _handle_message(ch, method, properties, body):
+    try:
+        _apply_event(method.routing_key, json.loads(body))
+    except Exception as exc:
+        # Se confirma igual para que un mensaje defectuoso no se reintente
+        # eternamente. Una mejora futura sería una cola de mensajes fallidos.
+        print(f"[broker] Error procesando {method.routing_key}: {exc}")
+    finally:
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+
 
 def _connect_and_consume():
-    params = pika.URLParameters(settings.rabbitmq_url)
-    connection = pika.BlockingConnection(params)
+    connection = pika.BlockingConnection(pika.URLParameters(settings.rabbitmq_url))
     channel = connection.channel()
     channel.exchange_declare(exchange=EXCHANGE_NAME, exchange_type="topic", durable=True)
     channel.queue_declare(queue=QUEUE_NAME, durable=True)
@@ -41,19 +89,19 @@ def _connect_and_consume():
     print("[broker] asset-service escuchando eventos de préstamos...")
     channel.start_consuming()
 
+
 def start_consumer():
-    """Bucle de reintento: si RabbitMQ no está listo o la conexión se cae,
-    se reintenta cada 5 segundos en lugar de morir silenciosamente."""
+    """Bucle de reintento: si RabbitMQ no está listo o se cae, reintenta cada 5 s."""
     while True:
         try:
             _connect_and_consume()
-        except pika.exceptions.AMQPConnectionError as e:
-            print(f"[broker] No se pudo conectar a RabbitMQ, reintentando en 5s: {e}")
+        except pika.exceptions.AMQPConnectionError as exc:
+            print(f"[broker] No se pudo conectar a RabbitMQ, reintentando en 5s: {exc}")
             time.sleep(5)
-        except Exception as e:
-            print(f"[broker] Error inesperado en el consumidor, reintentando en 5s: {e}")
+        except Exception as exc:
+            print(f"[broker] Error inesperado en el consumidor, reintentando en 5s: {exc}")
             time.sleep(5)
 
+
 def start_consumer_thread():
-    thread = threading.Thread(target=start_consumer, daemon=True)
-    thread.start()
+    threading.Thread(target=start_consumer, daemon=True).start()

@@ -2,66 +2,98 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  background-color: var(--color-surface);
+  height: var(--navbar-height);
+  padding: 0 var(--spacing-lg);
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  padding: var(--spacing-sm) var(--spacing-lg);
   position: sticky;
   top: 0;
   z-index: 100;
 }
-
-.navbar-toggle {
-  display: none;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-}
-
 .navbar-logo {
   height: 36px;
+  max-width: 120px;
+  object-fit: contain;
 }
-
+.navbar-brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
 .navbar-title {
-  font-weight: 600;
-  font-size: 15px;
+  font-weight: 700;
 }
-
-@media (max-width: 768px) {
-  .navbar-toggle {
-    display: block;
-  }
-  .navbar-title {
-    font-size: 13px;
-  }
+.navbar-subtitle {
+  font-size: 12px;
+  color: var(--color-text-light);
 }
 .navbar-user {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
-
-.navbar-user-name {
+.navbar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
   font-size: 13px;
 }
-
+.navbar-user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.navbar-user-name {
+  font-weight: 600;
+  font-size: 13px;
+}
 .navbar-user-role {
-  color: var(--color-text-light);
   font-size: 12px;
+  color: var(--color-text-light);
+}
+.navbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.navbar-icon-btn:hover {
+  background: var(--color-background);
+  color: var(--color-text);
+}
+.navbar-toggle {
+  display: none;
 }
 
-.navbar-logout {
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 var(--spacing-md);
+  }
+  .navbar-toggle {
+    display: inline-flex;
+  }
+  .navbar-user-info,
+  .navbar-subtitle {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {
-  .navbar-user-name {
+  .navbar-brand {
     display: none;
   }
 }

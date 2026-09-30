@@ -1,16 +1,21 @@
-from sqlalchemy import Column, Integer, String, Enum
-from app.core.database import Base
 import enum
 import os
+
+from sqlalchemy import Boolean, Column, Enum, Integer, String, true
+
+from app.core.database import Base
+
 
 class UserRole(str, enum.Enum):
     ADMINISTRADOR = "administrador"
     ALMACENISTA = "almacenista"
     PERSONAL_AUTORIZADO = "personal_autorizado"
 
+
 _IS_TESTING = os.getenv("TESTING") == "true"
 _table_args = {} if _IS_TESTING else {"schema": "assets"}
 _enum_schema = None if _IS_TESTING else "assets"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -21,12 +26,8 @@ class User(Base):
     email = Column(String(150), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     role = Column(
-        Enum(
-            UserRole,
-            name="userrole",
-            schema=_enum_schema,
-            values_callable=lambda enum_cls: [e.value for e in enum_cls],
-        ),
+        Enum(UserRole, name="userrole", schema=_enum_schema, values_callable=lambda e: [m.value for m in e]),
         nullable=False,
         default=UserRole.PERSONAL_AUTORIZADO,
     )
+    is_active = Column(Boolean, nullable=False, default=True, server_default=true())

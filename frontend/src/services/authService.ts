@@ -1,5 +1,10 @@
 import { assetApi } from "./apiClients";
-import type { LoginPayload, TokenResponse, User } from "@/types/auth";
+import type {
+  LoginPayload,
+  PasswordChangePayload,
+  TokenResponse,
+  User,
+} from "@/types/auth";
 
 export const authService = {
   login: async ({
@@ -9,7 +14,6 @@ export const authService = {
     const body = new URLSearchParams();
     body.append("username", username);
     body.append("password", password);
-
     const { data } = await assetApi.post<TokenResponse>("/auth/login", body, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
@@ -19,5 +23,9 @@ export const authService = {
   getMe: async (): Promise<User> => {
     const { data } = await assetApi.get<User>("/auth/me");
     return data;
+  },
+
+  changePassword: async (payload: PasswordChangePayload): Promise<void> => {
+    await assetApi.post("/auth/change-password", payload);
   },
 };

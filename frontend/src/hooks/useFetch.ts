@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getErrorMessage } from "@/utils/errors";
 
 interface UseFetchResult<T> {
   data: T | null;
@@ -12,29 +13,33 @@ export function useFetch<T>(fetchFn: () => Promise<T>): UseFetchResult<T> {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isMounted = useRef(true);
+  const requestId = useRef(0);
 
   const load = useCallback(() => {
+    const currentRequest = ++requestId.current;
+    const isCurrent = () =>
+      isMounted.current && currentRequest === requestId.current;
+
     setIsLoading(true);
     setError(null);
 
     fetchFn()
       .then((result) => {
-        if (isMounted.current) setData(result);
+        if (isCurrent()) setData(result);
       })
-      .catch((err) => {
-        if (isMounted.current)
-          setError(err.message ?? "Error al cargar los datos");
+      .catch((err: unknown) => {
+        if (isCurrent())
+          setError(getErrorMessage(err, "Error al cargar los datos"));
       })
       .finally(() => {
-        if (isMounted.current) setIsLoading(false);
+        if (isCurrent()) setIsLoading(false);
       });
   }, [fetchFn]);
 
   useEffect(() => {
     isMounted.current = true;
     // Patrón estándar de fetching: setIsLoading/setError se ejecutan de forma
-    // síncrona al iniciar la carga (para mostrar el Skeleton de inmediato).
-    // No genera renders en cascada porque no depende de su propio resultado.
+    // síncrona al iniciar la carga para mostrar el Skeleton de inmediato.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
 

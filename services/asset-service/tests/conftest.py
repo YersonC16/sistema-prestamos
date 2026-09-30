@@ -1,30 +1,33 @@
+import os
+
+# Deben fijarse ANTES de importar la aplicación
+os.environ["TESTING"] = "true"
+os.environ.setdefault("JWT_SECRET_KEY", "clave-solo-para-pruebas-1234")
+
 import pytest
-from sqlalchemy import create_engine, event
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from fastapi.testclient import TestClient
 
 from app.core.database import Base, get_db
+from app.core.login_guard import login_tracker
+from app.core.security import create_access_token, hash_password
 from app.main import app
-
-# Base de datos en memoria: se crea y destruye en cada sesión de pruebas.
-TEST_DATABASE_URL = "sqlite:///:memory:"
+from app.models.user import User
 
 engine = create_engine(
-    TEST_DATABASE_URL,
+    "sqlite:///:memory:",
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
-
-# SQLite no soporta esquemas (schema="assets") de forma nativa; los ignoramos
-# solo en el entorno de pruebas para que las tablas se creen igual.
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
-
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def reset_login_tracker():
+    login_tracker.reset_all()
+    yield
 
 
 @pytest.fixture(scope="function")
@@ -50,3 +53,24 @@ def client(db_session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def make_user(db_session):
+    """Crea un usuario y devuelve (usuario, token)."""
+
+    def _make(role, email=None, password="Test123!", is_active=True):
+        user = User(
+            full_name=f"Usuario {role.value}",
+            email=email or f"{role.value}@test.com",
+            hashed_password=hash_password(password),
+            role=role,
+            is_active=is_active,
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+        token = create_access_token({"sub": str(user.id), "role": user.role.value, "name": user.full_name})
+        return user, token
+
+    return _make

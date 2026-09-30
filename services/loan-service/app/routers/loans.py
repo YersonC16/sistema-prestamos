@@ -1,69 +1,68 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-import requests
+
 from app.core.database import get_db
-from app.core.config import settings
-from app.core.deps import get_current_user_payload, oauth2_scheme
-from app.schemas.loan import LoanCreate, LoanResponse
-from app.services.loan_builder import LoanBuilder
-from app.services.event_publisher import publish_event
-from app.models.loan import Loan, LoanStatus
-from datetime import datetime, timezone
+from app.core.deps import get_current_user, oauth2_scheme, require_roles
+from app.schemas.loan import LoanCreate, LoanHistoryResponse, LoanResponse, LoanReturn
+from app.services.loan_facade import LoanFacade
 
 router = APIRouter(prefix="/loans", tags=["Préstamos"])
+
+
+def get_facade(db: Session = Depends(get_db)) -> LoanFacade:
+    return LoanFacade(db)
+
 
 @router.post("/", response_model=LoanResponse)
 def create_loan(
     payload: LoanCreate,
-    db: Session = Depends(get_db),
-    user_payload: dict = Depends(get_current_user_payload),
+    user: dict = Depends(get_current_user),
     token: str = Depends(oauth2_scheme),
+    facade: LoanFacade = Depends(get_facade),
 ):
-    resp = requests.get(
-        f"{settings.asset_service_url}/assets/available",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    if resp.status_code != 200:
-        raise HTTPException(502, "No se pudo verificar la disponibilidad del activo")
+    return facade.register_loan(payload.model_dump(), user, token)
 
-    available_ids = [a["id"] for a in resp.json()]
-    if payload.asset_id not in available_ids:
-        raise HTTPException(400, "El activo no está disponible para préstamo")
 
-    loan = (
-        LoanBuilder()
-        .with_asset(payload.asset_id)
-        .with_responsible(payload.responsible_name)
-        .with_loan_date(payload.loan_date)
-        .with_expected_return(payload.expected_return_date)
-        .build()
-    )
-    db.add(loan)
-    db.commit()
-    db.refresh(loan)
+@router.get("/", response_model=list[LoanResponse])
+def list_loans(
+    status: str | None = None,
+    asset_id: int | None = None,
+    _: dict = Depends(get_current_user),
+    facade: LoanFacade = Depends(get_facade),
+):
+    return facade.list_loans(status, asset_id)
 
-    publish_event("prestamo.creado", {"asset_id": loan.asset_id, "loan_id": loan.id})
 
-    return loan
+@router.get("/summary")
+def loans_summary(_: dict = Depends(get_current_user), facade: LoanFacade = Depends(get_facade)):
+    return facade.summary()
+
+
+@router.get("/history", response_model=list[LoanHistoryResponse])
+def movement_log(
+    limit: int = Query(default=50, ge=1, le=200),
+    _: dict = Depends(require_roles("administrador", "almacenista")),
+    facade: LoanFacade = Depends(get_facade),
+):
+    return facade.movement_log(limit)
+
+
+@router.get("/asset/{asset_id}/current", response_model=LoanResponse | None)
+def current_holder(asset_id: int, _: dict = Depends(get_current_user), facade: LoanFacade = Depends(get_facade)):
+    return facade.current_holder(asset_id)
+
+
+@router.get("/{loan_id}/history", response_model=list[LoanHistoryResponse])
+def loan_history(loan_id: int, _: dict = Depends(get_current_user), facade: LoanFacade = Depends(get_facade)):
+    return facade.history_of_loan(loan_id)
+
 
 @router.put("/{loan_id}/return", response_model=LoanResponse)
 def return_loan(
     loan_id: int,
-    db: Session = Depends(get_db),
-    user_payload: dict = Depends(get_current_user_payload),
+    payload: LoanReturn | None = None,
+    user: dict = Depends(get_current_user),
+    facade: LoanFacade = Depends(get_facade),
 ):
-    loan = db.query(Loan).filter(Loan.id == loan_id).first()
-    if not loan:
-        raise HTTPException(404, "Préstamo no encontrado")
-    loan.actual_return_date = datetime.now(timezone.utc)
-    loan.status = LoanStatus.DEVUELTO
-    db.commit()
-    db.refresh(loan)
-
-    publish_event("prestamo.devuelto", {"asset_id": loan.asset_id, "loan_id": loan.id})
-
-    return loan
-
-@router.get("/", response_model=list[LoanResponse])
-def list_loans(db: Session = Depends(get_db), user_payload: dict = Depends(get_current_user_payload)):
-    return db.query(Loan).all()
+    data = payload or LoanReturn()
+    return facade.register_return(loan_id, data.condition, data.notes, user)
