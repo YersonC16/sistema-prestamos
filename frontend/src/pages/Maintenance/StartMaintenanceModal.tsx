@@ -7,7 +7,7 @@ import Select from "@/components/common/Select";
 import Textarea from "@/components/common/Textarea";
 import { maintenanceService } from "@/services/maintenanceService";
 import type { Asset } from "@/types/asset";
-import type { MaintenanceType } from "@/types/maintenance";
+import type { MaintenanceLocation, MaintenanceType } from "@/types/maintenance";
 import { getErrorMessage } from "@/utils/errors";
 import { endOfDayIso, todayInputValue } from "@/utils/format";
 
@@ -28,7 +28,9 @@ function StartMaintenanceModal({
 }: StartMaintenanceModalProps) {
   const initialAsset = defaultAssetId ? String(defaultAssetId) : "";
   const [assetId, setAssetId] = useState(initialAsset);
+  const [location, setLocation] = useState<MaintenanceLocation>("interno");
   const [assignedTo, setAssignedTo] = useState("");
+  const [providerName, setProviderName] = useState("");
   const [type, setType] = useState<MaintenanceType>("preventivo");
   const [reason, setReason] = useState("");
   const [expectedEnd, setExpectedEnd] = useState("");
@@ -37,7 +39,9 @@ function StartMaintenanceModal({
 
   const close = () => {
     setAssetId(initialAsset);
+    setLocation("interno");
     setAssignedTo("");
+    setProviderName("");
     setType("preventivo");
     setReason("");
     setExpectedEnd("");
@@ -48,8 +52,10 @@ function StartMaintenanceModal({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!assetId) return setError("Selecciona el activo");
-    if (assignedTo.trim().length < 2)
-      return setError("Indica la persona a quien se asigna el mantenimiento");
+    if (location === "interno" && assignedTo.trim().length < 2)
+      return setError("Indica a quién se asigna internamente");
+    if (location === "externo" && providerName.trim().length < 2)
+      return setError("Indica el proveedor o taller externo");
     if (reason.trim().length < 3)
       return setError("Describe el motivo del mantenimiento");
     if (expectedEnd && expectedEnd < todayInputValue())
@@ -60,7 +66,9 @@ function StartMaintenanceModal({
     try {
       await maintenanceService.start({
         asset_id: Number(assetId),
-        assigned_to: assignedTo.trim(),
+        location,
+        assigned_to: location === "interno" ? assignedTo.trim() : undefined,
+        provider_name: location === "externo" ? providerName.trim() : undefined,
         maintenance_type: type,
         reason: reason.trim(),
         expected_end_date: expectedEnd ? endOfDayIso(expectedEnd) : undefined,
@@ -92,13 +100,36 @@ function StartMaintenanceModal({
             </option>
           ))}
         </Select>
-        <Input
-          label="Asignado a"
-          value={assignedTo}
-          onChange={(e) => setAssignedTo(e.target.value)}
-          placeholder="Persona o técnico responsable"
-          required
-        />
+
+        <Select
+          label="¿Dónde se atiende?"
+          value={location}
+          onChange={(e) => setLocation(e.target.value as MaintenanceLocation)}
+        >
+          <option value="interno">
+            Mantenimiento interno (con personal propio)
+          </option>
+          <option value="externo">Proveedor o taller externo</option>
+        </Select>
+
+        {location === "interno" ? (
+          <Input
+            label="Asignado a"
+            value={assignedTo}
+            onChange={(e) => setAssignedTo(e.target.value)}
+            placeholder="Persona o técnico responsable"
+            required
+          />
+        ) : (
+          <Input
+            label="Proveedor o taller"
+            value={providerName}
+            onChange={(e) => setProviderName(e.target.value)}
+            placeholder="Nombre del proveedor/taller"
+            required
+          />
+        )}
+
         <Select
           label="Tipo de mantenimiento"
           value={type}

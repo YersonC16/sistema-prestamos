@@ -48,3 +48,11 @@ export interface LoanSummary {
   devuelto: number;
   atrasado: number;
 }
+
+export interface LoanReturnPayload {
+  condition: ReturnCondition;
+  notes?: string;
+  maintenance_location?: "interno" | "externo";
+  maintenance_assigned_to?: string;
+  maintenance_provider?: string;
+}

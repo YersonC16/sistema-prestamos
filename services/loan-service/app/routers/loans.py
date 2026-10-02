@@ -65,4 +65,4 @@ def return_loan(
     facade: LoanFacade = Depends(get_facade),
 ):
     data = payload or LoanReturn()
-    return facade.register_return(loan_id, data.condition, data.notes, user)
+    return facade.register_return(loan_id, data.model_dump(), user)

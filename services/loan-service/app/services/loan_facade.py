@@ -51,6 +51,9 @@ def _returned_event(context, loan: Loan) -> dict:
         "notes": loan.return_notes,
         "returned_by": loan.returned_by_name,
         "was_late": _was_late(loan),
+        "maintenance_location": context.data.get("maintenance_location"),
+        "maintenance_assigned_to": context.data.get("maintenance_assigned_to"),
+        "maintenance_provider": context.data.get("maintenance_provider"),
     }
 
 
@@ -80,10 +83,10 @@ class LoanFacade:
     def register_loan(self, data: dict, user: dict, token: str | None) -> Loan:
         return self._create_chain.execute(OperationContext(self._db, user, data, token))
 
-    def register_return(self, loan_id: int, condition: str, notes: str | None, user: dict) -> Loan:
-        data = {"loan_id": loan_id, "condition": condition, "notes": notes}
+    def register_return(self, loan_id: int, payload: dict, user: dict) -> Loan:
+        data = {"loan_id": loan_id, **payload}
         return self._return_chain.execute(OperationContext(self._db, user, data))
-
+    
     # ---- Consultas ----
 
     def list_loans(self, status: str | None = None, asset_id: int | None = None) -> list[Loan]:

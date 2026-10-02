@@ -10,6 +10,7 @@ import Login from "@/pages/Login";
 import Maintenance from "@/pages/Maintenance";
 import Traceability from "@/pages/Traceability";
 import Users from "@/pages/Users";
+import Responsibles from "@/pages/Responsibles";
 
 function App() {
   return (
@@ -43,6 +44,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["administrador"]}>
                 <Users />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/responsables"
+            element={
+              <ProtectedRoute allowedRoles={["administrador", "almacenista"]}>
+                <Responsibles />
               </ProtectedRoute>
             }
           />

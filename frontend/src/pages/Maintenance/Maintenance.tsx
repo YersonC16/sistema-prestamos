@@ -19,7 +19,13 @@ import type { Asset } from "@/types/asset";
 import type { MaintenanceRecord, MaintenanceStatus } from "@/types/maintenance";
 import { getErrorMessage } from "@/utils/errors";
 import { formatDate } from "@/utils/format";
-import { MAINTENANCE_STATUS, MAINTENANCE_TYPE_LABEL } from "@/utils/labels";
+import {
+  MAINTENANCE_LOCATION_LABEL,
+  MAINTENANCE_SOURCE_LABEL,
+  MAINTENANCE_STATUS,
+  MAINTENANCE_TYPE_LABEL,
+} from "@/utils/labels";
+import EscalateMaintenanceModal from "./EscalateMaintenanceModal";
 import StartMaintenanceModal from "./StartMaintenanceModal";
 
 type Filter = MaintenanceStatus | "todos";
@@ -55,6 +61,7 @@ function Maintenance() {
     useFetch<Asset[]>(fetchAvailable);
 
   const [isStartOpen, setIsStartOpen] = useState(false);
+  const [escalating, setEscalating] = useState<MaintenanceRecord | null>(null);
   const [finishing, setFinishing] = useState<MaintenanceRecord | null>(null);
   const [finishNotes, setFinishNotes] = useState("");
   const [finishError, setFinishError] = useState("");
@@ -98,9 +105,20 @@ function Maintenance() {
       ),
     },
     {
-      key: "assigned_to",
-      label: "Asignado a",
-      render: (item) => <span className="cell-strong">{item.assigned_to}</span>,
+      key: "location",
+      label: "Dónde",
+      render: (item) => (
+        <>
+          <Badge tone={item.location === "interno" ? "info" : "warning"}>
+            {MAINTENANCE_LOCATION_LABEL[item.location]}
+          </Badge>
+          <div className="muted" style={{ fontSize: "12px", marginTop: "4px" }}>
+            {item.location === "interno"
+              ? item.assigned_to
+              : item.provider_name}
+          </div>
+        </>
+      ),
     },
     {
       key: "maintenance_type",
@@ -109,14 +127,21 @@ function Maintenance() {
     },
     { key: "reason", label: "Motivo" },
     {
+      key: "source",
+      label: "Origen",
+      render: (item) => (
+        <span className="muted" style={{ fontSize: "12px" }}>
+          {MAINTENANCE_SOURCE_LABEL[item.source]}
+          {item.source === "devolucion_con_novedad" &&
+            item.source_loan_id &&
+            ` (préstamo #${item.source_loan_id})`}
+        </span>
+      ),
+    },
+    {
       key: "started_at",
       label: "Inicio",
       render: (item) => formatDate(item.started_at),
-    },
-    {
-      key: "expected_end_date",
-      label: "Prevista",
-      render: (item) => formatDate(item.expected_end_date),
     },
     {
       key: "status",
@@ -132,13 +157,24 @@ function Maintenance() {
       label: "Acción",
       render: (item) =>
         canManage && item.status === "en_proceso" ? (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => setFinishing(item)}
-          >
-            Finalizar
-          </Button>
+          <div className="cell-actions">
+            {item.location === "interno" && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEscalating(item)}
+              >
+                Escalar a externo
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setFinishing(item)}
+            >
+              Finalizar
+            </Button>
+          </div>
         ) : (
           "—"
         ),
@@ -149,7 +185,7 @@ function Maintenance() {
     <div className="page">
       <PageHeader
         title="Mantenimiento"
-        subtitle="Cada mantenimiento queda asignado a una persona responsable."
+        subtitle="Interno (personal propio) o externo (proveedor/taller). Un mantenimiento interno sin solución se puede escalar a externo."
         actions={
           canManage ? (
             <Button onClick={() => setIsStartOpen(true)}>
@@ -174,7 +210,7 @@ function Maintenance() {
       </div>
 
       <Card>
-        {isLoading && <SkeletonTable rows={4} columns={6} />}
+        {isLoading && <SkeletonTable rows={4} columns={7} />}
         {error && <Alert>{error}</Alert>}
         {!isLoading && !error && (
           <Table<MaintenanceRecord>
@@ -196,6 +232,14 @@ function Maintenance() {
         assets={availableAssets ?? []}
       />
 
+      {escalating && (
+        <EscalateMaintenanceModal
+          maintenance={escalating}
+          onClose={() => setEscalating(null)}
+          onEscalated={refetch}
+        />
+      )}
+
       <Modal
         isOpen={finishing !== null}
         onClose={closeFinish}
@@ -207,8 +251,13 @@ function Maintenance() {
               <strong>
                 {finishing.asset_name ?? `#${finishing.asset_id}`}
               </strong>{" "}
-              a cargo de <strong>{finishing.assigned_to}</strong>. Al finalizar,
-              el activo vuelve a estar disponible.
+              a cargo de{" "}
+              <strong>
+                {finishing.location === "interno"
+                  ? finishing.assigned_to
+                  : finishing.provider_name}
+              </strong>
+              . Al finalizar, el activo vuelve a estar disponible.
             </p>
             <Textarea
               label="Observaciones (opcional)"

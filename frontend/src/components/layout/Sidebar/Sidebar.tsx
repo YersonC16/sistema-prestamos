@@ -16,6 +16,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/panel", label: "Panel", icon: "dashboard" },
   { to: "/inventario", label: "Inventario", icon: "package" },
   { to: "/prestamos", label: "Préstamos", icon: "repeat" },
+  {
+    to: "/responsables",
+    label: "Responsables",
+    icon: "id",
+    roles: ["administrador", "almacenista"],
+  },
   { to: "/mantenimiento", label: "Mantenimiento", icon: "tool" },
   {
     to: "/trazabilidad",

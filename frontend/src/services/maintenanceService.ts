@@ -1,6 +1,7 @@
 import { assetApi } from "./apiClients";
 import type {
   MaintenanceCreatePayload,
+  MaintenanceEscalatePayload,
   MaintenanceRecord,
   MaintenanceStatus,
 } from "@/types/maintenance";
@@ -25,6 +26,17 @@ export const maintenanceService = {
   ): Promise<MaintenanceRecord> => {
     const { data } = await assetApi.post<MaintenanceRecord>(
       "/maintenance/",
+      payload,
+    );
+    return data;
+  },
+
+  escalate: async (
+    id: number,
+    payload: MaintenanceEscalatePayload,
+  ): Promise<MaintenanceRecord> => {
+    const { data } = await assetApi.put<MaintenanceRecord>(
+      `/maintenance/${id}/escalate`,
       payload,
     );
     return data;

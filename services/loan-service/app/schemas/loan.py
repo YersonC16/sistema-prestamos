@@ -16,13 +16,22 @@ class LoanCreate(BaseModel):
 class LoanReturn(BaseModel):
     condition: Literal["bueno", "con_novedad"] = "bueno"
     notes: str | None = Field(default=None, max_length=500)
+    maintenance_location: Literal["interno", "externo"] | None = None
+    maintenance_assigned_to: str | None = None
+    maintenance_provider: str | None = None
 
     @model_validator(mode="after")
     def novelty_needs_description(self):
-        if self.condition == "con_novedad" and not (self.notes and self.notes.strip()):
-            raise ValueError("Describe la novedad encontrada en el activo")
+        if self.condition == "con_novedad":
+            if not (self.notes and self.notes.strip()):
+                raise ValueError("Describe la novedad encontrada en el activo")
+            if self.maintenance_location is None:
+                raise ValueError("Indica si el mantenimiento es interno o con el proveedor")
+            if self.maintenance_location == "interno" and not (self.maintenance_assigned_to and self.maintenance_assigned_to.strip()):
+                raise ValueError("Indica a quién se asigna el mantenimiento interno")
+            if self.maintenance_location == "externo" and not (self.maintenance_provider and self.maintenance_provider.strip()):
+                raise ValueError("Indica el proveedor o taller externo")
         return self
-
 
 class LoanResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

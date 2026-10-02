@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import "./styles/variables.css";
 import "./styles/common.css";
+import "./styles/theme-polish.css";
 
 const rootElement = document.getElementById("root") as HTMLElement;
 

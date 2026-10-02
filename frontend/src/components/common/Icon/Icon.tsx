@@ -1,6 +1,14 @@
 import type { ReactNode } from "react";
 
 const ICONS = {
+  id: (
+    <>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <circle cx="8" cy="11" r="2" />
+      <line x1="14" y1="9" x2="19" y2="9" />
+      <line x1="14" y1="13" x2="19" y2="13" />
+    </>
+  ),
   dashboard: (
     <>
       <rect x="3" y="3" width="7" height="7" />

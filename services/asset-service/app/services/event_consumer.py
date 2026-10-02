@@ -8,6 +8,7 @@ import pika
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.models.asset import Asset, AssetStatus
+from app.models.maintenance import Maintenance
 from app.services.audit_service import record_audit
 
 EXCHANGE_NAME = "prestamos_events"
@@ -21,6 +22,23 @@ def _format_date(value: str | None) -> str:
         return datetime.fromisoformat(value).strftime("%d/%m/%Y")
     except ValueError:
         return value
+
+
+def _create_maintenance_from_return(db, asset: Asset, data: dict) -> None:
+    location = data.get("maintenance_location") or "interno"
+    maintenance = Maintenance(
+        asset_id=asset.id,
+        asset_name=asset.name,
+        location=location,
+        assigned_to=data.get("maintenance_assigned_to") if location == "interno" else None,
+        provider_name=data.get("maintenance_provider") if location == "externo" else None,
+        maintenance_type="correctivo",
+        reason=data.get("notes") or "Novedad reportada al devolver el préstamo",
+        source="devolucion_con_novedad",
+        source_loan_id=data.get("loan_id"),
+        created_by=data.get("returned_by") or "Sistema",
+    )
+    db.add(maintenance)
 
 
 def _apply_event(routing_key: str, data: dict) -> None:
@@ -45,7 +63,9 @@ def _apply_event(routing_key: str, data: dict) -> None:
             if data.get("condition") == "con_novedad":
                 asset.status = AssetStatus.MANTENIMIENTO
                 action = "devolucion_con_novedad"
-                detail = f"Devuelto por {data.get('responsible_name')}{late} con novedad: {data.get('notes')}"
+                destino = data.get("maintenance_assigned_to") or data.get("maintenance_provider") or "revisión"
+                detail = f"Devuelto por {data.get('responsible_name')}{late} con novedad: {data.get('notes')} (enviado a {destino})"
+                _create_maintenance_from_return(db, asset, data)
             else:
                 asset.status = AssetStatus.DISPONIBLE
                 action = "prestamo_devuelto"
@@ -71,8 +91,6 @@ def _handle_message(ch, method, properties, body):
     try:
         _apply_event(method.routing_key, json.loads(body))
     except Exception as exc:
-        # Se confirma igual para que un mensaje defectuoso no se reintente
-        # eternamente. Una mejora futura sería una cola de mensajes fallidos.
         print(f"[broker] Error procesando {method.routing_key}: {exc}")
     finally:
         ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -91,7 +109,6 @@ def _connect_and_consume():
 
 
 def start_consumer():
-    """Bucle de reintento: si RabbitMQ no está listo o se cae, reintenta cada 5 s."""
     while True:
         try:
             _connect_and_consume()

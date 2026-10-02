@@ -65,9 +65,11 @@ const loanColumns: TableColumn<Loan>[] = [
 
 const maintenanceColumns: TableColumn<MaintenanceRecord>[] = [
   {
-    key: "assigned_to",
-    label: "Asignado a",
-    render: (item) => <span className="cell-strong">{item.assigned_to}</span>,
+    key: "location",
+    label: "Dónde",
+    render: (item) =>
+      (item.location === "interno" ? item.assigned_to : item.provider_name) ??
+      "—",
   },
   {
     key: "maintenance_type",

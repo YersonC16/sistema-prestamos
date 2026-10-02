@@ -8,7 +8,6 @@ import Icon from "@/components/common/Icon";
 import Input from "@/components/common/Input";
 import Modal from "@/components/common/Modal";
 import PageHeader from "@/components/common/PageHeader";
-import Select from "@/components/common/Select";
 import { SkeletonTable } from "@/components/common/Skeleton";
 import Table from "@/components/common/Table";
 import type { TableColumn } from "@/components/common/Table";
@@ -30,7 +29,10 @@ import { LOAN_STATUS } from "@/utils/labels";
 import LoanHistoryModal from "./LoanHistoryModal";
 import { responsibleService } from "@/services/responsibleService";
 import type { Responsible } from "@/types/responsible";
-import CreateResponsibleModal from "./CreateResponsibleModal";
+//import CreateResponsibleModal from "./CreateResponsibleModal";
+import ResponsibleFormModal from "@/pages/Responsibles/ResponsibleFormModal";
+import Select from "@/components/common/Select";
+import type { MaintenanceLocation } from "@/types/maintenance";
 
 function Loans() {
   const { user } = useAuth();
@@ -78,6 +80,10 @@ function Loans() {
   const [returnNotes, setReturnNotes] = useState("");
   const [returnError, setReturnError] = useState("");
   const [isReturning, setIsReturning] = useState(false);
+  const [maintenanceLocation, setMaintenanceLocation] =
+    useState<MaintenanceLocation>("interno");
+  const [maintenanceAssignedTo, setMaintenanceAssignedTo] = useState("");
+  const [maintenanceProvider, setMaintenanceProvider] = useState("");
 
   // Historial
   const [historyLoan, setHistoryLoan] = useState<Loan | null>(null);
@@ -141,8 +147,17 @@ function Loans() {
   const handleReturn = async (event: FormEvent) => {
     event.preventDefault();
     if (!returning) return;
-    if (condition === "con_novedad" && !returnNotes.trim()) {
-      return setReturnError("Describe la novedad encontrada en el activo");
+    if (condition === "con_novedad") {
+      if (!returnNotes.trim())
+        return setReturnError("Describe la novedad encontrada en el activo");
+      if (maintenanceLocation === "interno" && !maintenanceAssignedTo.trim()) {
+        return setReturnError(
+          "Indica a quién se asigna el mantenimiento interno",
+        );
+      }
+      if (maintenanceLocation === "externo" && !maintenanceProvider.trim()) {
+        return setReturnError("Indica el proveedor o taller externo");
+      }
     }
 
     setIsReturning(true);
@@ -151,6 +166,16 @@ function Loans() {
       await loanService.returnLoan(returning.id, {
         condition,
         notes: condition === "con_novedad" ? returnNotes.trim() : undefined,
+        maintenance_location:
+          condition === "con_novedad" ? maintenanceLocation : undefined,
+        maintenance_assigned_to:
+          condition === "con_novedad" && maintenanceLocation === "interno"
+            ? maintenanceAssignedTo.trim()
+            : undefined,
+        maintenance_provider:
+          condition === "con_novedad" && maintenanceLocation === "externo"
+            ? maintenanceProvider.trim()
+            : undefined,
       });
       closeReturn();
       refetch();
@@ -389,9 +414,39 @@ function Loans() {
                   onChange={(e) => setReturnNotes(e.target.value)}
                   placeholder="Daño, pieza faltante, desgaste..."
                 />
+
+                <Select
+                  label="¿A dónde se envía?"
+                  value={maintenanceLocation}
+                  onChange={(e) =>
+                    setMaintenanceLocation(
+                      e.target.value as MaintenanceLocation,
+                    )
+                  }
+                >
+                  <option value="interno">Mantenimiento interno</option>
+                  <option value="externo">Proveedor o taller externo</option>
+                </Select>
+
+                {maintenanceLocation === "interno" ? (
+                  <Input
+                    label="Asignado a"
+                    value={maintenanceAssignedTo}
+                    onChange={(e) => setMaintenanceAssignedTo(e.target.value)}
+                    placeholder="Persona o técnico responsable"
+                  />
+                ) : (
+                  <Input
+                    label="Proveedor o taller"
+                    value={maintenanceProvider}
+                    onChange={(e) => setMaintenanceProvider(e.target.value)}
+                    placeholder="Nombre del proveedor/taller"
+                  />
+                )}
+
                 <Alert tone="info">
-                  Con novedad, el activo pasará a mantenimiento hasta que se
-                  revise.
+                  El activo pasará a mantenimiento hasta que se finalice la
+                  revisión.
                 </Alert>
               </>
             )}
@@ -407,10 +462,10 @@ function Loans() {
           </form>
         )}
       </Modal>
-      <CreateResponsibleModal
+      <ResponsibleFormModal
         isOpen={isNewResponsibleOpen}
         onClose={() => setIsNewResponsibleOpen(false)}
-        onCreated={(responsible) => {
+        onSaved={(responsible) => {
           refetchResponsibles();
           setResponsibleId(String(responsible.id));
         }}

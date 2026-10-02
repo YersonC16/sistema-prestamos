@@ -79,6 +79,16 @@ export const DOCUMENT_TYPE_LABEL: Record<string, string> = {
   PASAPORTE: "Pasaporte",
 };
 
+export const MAINTENANCE_LOCATION_LABEL: Record<string, string> = {
+  interno: "Interno",
+  externo: "Proveedor externo",
+};
+
+export const MAINTENANCE_SOURCE_LABEL: Record<string, string> = {
+  manual: "Registrado manualmente",
+  devolucion_con_novedad: "Devolución con novedad",
+};
+
 export function actionMeta(action: string): LabelTone {
   return (
     ACTIONS[action] ?? { label: action.replace(/_/g, " "), tone: "neutral" }
