@@ -33,6 +33,8 @@ import type { Responsible } from "@/types/responsible";
 import ResponsibleFormModal from "@/pages/Responsibles/ResponsibleFormModal";
 import Select from "@/components/common/Select";
 import type { MaintenanceLocation } from "@/types/maintenance";
+import Pagination from "@/components/common/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 function Loans() {
   const { user } = useAuth();
@@ -97,6 +99,10 @@ function Loans() {
         (loan.asset_name ?? "").toLowerCase().includes(term),
     );
   }, [loans, search]);
+  const { page, setPage, totalPages, pageItems, total } = usePagination(
+    filtered,
+    10,
+  );
 
   const closeCreate = () => {
     setIsCreateOpen(false);
@@ -303,11 +309,18 @@ function Loans() {
         {!isLoading && !error && (
           <Table<Loan>
             columns={columns}
-            data={filtered}
+            data={pageItems}
             keyExtractor={(loan) => loan.id}
             emptyMessage="No hay préstamos para mostrar"
           />
         )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={10}
+          onChange={setPage}
+        />
       </Card>
 
       <Modal

@@ -18,6 +18,8 @@ import { assetService } from "@/services/assetService";
 import type { Asset, AssetStatus, AssetType } from "@/types/asset";
 import { getErrorMessage } from "@/utils/errors";
 import { ASSET_STATUS, ASSET_TYPE_LABEL } from "@/utils/labels";
+import Pagination from "@/components/common/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 const columns: TableColumn<Asset>[] = [
   { key: "code", label: "Código" },
@@ -80,6 +82,11 @@ function Inventory() {
           (asset.code ?? "").toLowerCase().includes(term)),
     );
   }, [assets, search, statusFilter, typeFilter]);
+
+  const { page, setPage, totalPages, pageItems, total } = usePagination(
+    filtered,
+    10,
+  );
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -163,12 +170,19 @@ function Inventory() {
         {!isLoading && !error && (
           <Table<Asset>
             columns={columns}
-            data={filtered}
+            data={pageItems}
             keyExtractor={(asset) => asset.id}
             onRowClick={(asset) => navigate(`/inventario/${asset.id}`)}
             emptyMessage="No hay activos que coincidan con la búsqueda"
           />
         )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={10}
+          onChange={setPage}
+        />
       </Card>
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title="Registrar activo">

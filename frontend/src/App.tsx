@@ -11,6 +11,7 @@ import Maintenance from "@/pages/Maintenance";
 import Traceability from "@/pages/Traceability";
 import Users from "@/pages/Users";
 import Responsibles from "@/pages/Responsibles";
+import Home from "@/pages/Home";
 
 function App() {
   return (
@@ -25,7 +26,8 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Navigate to="/panel" replace />} />
+          <Route path="/" element={<Home />} />
+
           <Route path="/panel" element={<Dashboard />} />
           <Route path="/inventario" element={<Inventory />} />
           <Route path="/inventario/:id" element={<AssetDetail />} />

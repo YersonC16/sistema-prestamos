@@ -1,0 +1,190 @@
+.home-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 15% 10%, #dbeafe 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, #ede9fe 0%, transparent 40%),
+    var(--color-background);
+}
+
+.home-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-xl);
+}
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.home-logo {
+  height: 36px;
+  max-width: 110px;
+  object-fit: contain;
+}
+.home-title {
+  display: block;
+  font-weight: 700;
+}
+.home-subtitle {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+.home-login-btn {
+  padding: 9px 20px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary), #1d4ed8);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 12px -4px rgba(37, 99, 235, 0.55);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.home-login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -4px rgba(29, 78, 216, 0.6);
+}
+
+.home-hero {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
+}
+
+.home-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: var(--spacing-md);
+}
+
+.home-hero h1 {
+  font-size: 38px;
+  line-height: 1.15;
+  margin-bottom: var(--spacing-md);
+}
+.home-hero p {
+  color: var(--color-text-light);
+  font-size: 16px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.home-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary), #4f46e5);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 10px 24px -8px rgba(37, 99, 235, 0.55);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.home-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -8px rgba(37, 99, 235, 0.65);
+}
+
+.home-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-lg);
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  width: 100%;
+  perspective: 1000px;
+}
+
+.feature-card {
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 14px 28px -16px rgba(15, 23, 42, 0.22);
+  transform-style: preserve-3d;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px) rotateX(4deg) rotateY(-4deg);
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.06),
+    0 26px 40px -16px rgba(37, 99, 235, 0.3);
+}
+
+.feature-card-inner {
+  padding: var(--spacing-lg);
+  transform: translateZ(20px);
+}
+
+.feature-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary-soft), #e0e7ff);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.feature-card h3 {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+.feature-card p {
+  font-size: 14px;
+  color: var(--color-text-light);
+  line-height: 1.5;
+}
+
+.home-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: var(--spacing-lg);
+  color: var(--color-text-light);
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .home-hero h1 {
+    font-size: 28px;
+  }
+  .feature-card:hover {
+    transform: translateY(-4px);
+  }
+}
+
+@media (max-width: 480px) {
+  .home-navbar {
+    padding: var(--spacing-md);
+  }
+  .home-subtitle {
+    display: none;
+  }
+}

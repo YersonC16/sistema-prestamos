@@ -7,12 +7,14 @@ import Icon from "@/components/common/Icon";
 import Input from "@/components/common/Input";
 import Modal from "@/components/common/Modal";
 import PageHeader from "@/components/common/PageHeader";
+import Pagination from "@/components/common/Pagination";
 import Select from "@/components/common/Select";
 import { SkeletonTable } from "@/components/common/Skeleton";
 import Table from "@/components/common/Table";
 import type { TableColumn } from "@/components/common/Table";
 import { useAuth } from "@/hooks/useAuth";
 import { useFetch } from "@/hooks/useFetch";
+import { usePagination } from "@/hooks/usePagination";
 import { userService } from "@/services/userService";
 import type { User, UserRole } from "@/types/auth";
 import { getErrorMessage } from "@/utils/errors";
@@ -34,6 +36,11 @@ function Users() {
     error,
     refetch,
   } = useFetch<User[]>(fetchUsers);
+
+  const { page, setPage, totalPages, pageItems, total } = usePagination(
+    users ?? [],
+    10,
+  );
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -203,12 +210,21 @@ function Users() {
         {isLoading && <SkeletonTable rows={4} columns={5} />}
         {error && <Alert>{error}</Alert>}
         {!isLoading && !error && (
-          <Table<User>
-            columns={columns}
-            data={users ?? []}
-            keyExtractor={(u) => u.id}
-            emptyMessage="No hay usuarios registrados"
-          />
+          <>
+            <Table<User>
+              columns={columns}
+              data={pageItems}
+              keyExtractor={(u) => u.id}
+              emptyMessage="No hay usuarios registrados"
+            />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              pageSize={10}
+              onChange={setPage}
+            />
+          </>
         )}
       </Card>
 

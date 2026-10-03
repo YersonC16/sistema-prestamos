@@ -3,12 +3,14 @@ import Alert from "@/components/common/Alert";
 import Badge from "@/components/common/Badge";
 import Card from "@/components/common/Card";
 import PageHeader from "@/components/common/PageHeader";
+import Pagination from "@/components/common/Pagination";
 import Select from "@/components/common/Select";
 import { SkeletonTable } from "@/components/common/Skeleton";
 import Table from "@/components/common/Table";
 import type { TableColumn } from "@/components/common/Table";
 import { useAuth } from "@/hooks/useAuth";
 import { useFetch } from "@/hooks/useFetch";
+import { usePagination } from "@/hooks/usePagination";
 import { auditService } from "@/services/auditService";
 import { loanService } from "@/services/loanService";
 import type { AuditEntry } from "@/types/asset";
@@ -98,6 +100,9 @@ function Traceability() {
   const movements = useFetch<LoanHistoryEntry[]>(fetchMovements);
   const audit = useFetch<AuditEntry[]>(fetchAudit);
 
+  const movementPagination = usePagination(movements.data ?? [], 10);
+  const auditPagination = usePagination(audit.data ?? [], 10);
+
   return (
     <div className="page">
       <PageHeader
@@ -146,12 +151,21 @@ function Traceability() {
             {movements.isLoading && <SkeletonTable rows={6} columns={5} />}
             {movements.error && <Alert>{movements.error}</Alert>}
             {!movements.isLoading && !movements.error && (
-              <Table<LoanHistoryEntry>
-                columns={movementColumns}
-                data={movements.data ?? []}
-                keyExtractor={(entry) => entry.id}
-                emptyMessage="Aún no hay movimientos"
-              />
+              <>
+                <Table<LoanHistoryEntry>
+                  columns={movementColumns}
+                  data={movementPagination.pageItems}
+                  keyExtractor={(entry) => entry.id}
+                  emptyMessage="Aún no hay movimientos"
+                />
+                <Pagination
+                  page={movementPagination.page}
+                  totalPages={movementPagination.totalPages}
+                  total={movementPagination.total}
+                  pageSize={10}
+                  onChange={movementPagination.setPage}
+                />
+              </>
             )}
           </>
         )}
@@ -160,12 +174,21 @@ function Traceability() {
             {audit.isLoading && <SkeletonTable rows={6} columns={5} />}
             {audit.error && <Alert>{audit.error}</Alert>}
             {!audit.isLoading && !audit.error && (
-              <Table<AuditEntry>
-                columns={auditColumns}
-                data={audit.data ?? []}
-                keyExtractor={(entry) => entry.id}
-                emptyMessage="Sin registros de auditoría"
-              />
+              <>
+                <Table<AuditEntry>
+                  columns={auditColumns}
+                  data={auditPagination.pageItems}
+                  keyExtractor={(entry) => entry.id}
+                  emptyMessage="Sin registros de auditoría"
+                />
+                <Pagination
+                  page={auditPagination.page}
+                  totalPages={auditPagination.totalPages}
+                  total={auditPagination.total}
+                  pageSize={10}
+                  onChange={auditPagination.setPage}
+                />
+              </>
             )}
           </>
         )}

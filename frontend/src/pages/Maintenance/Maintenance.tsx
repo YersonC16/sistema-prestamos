@@ -7,12 +7,14 @@ import Card from "@/components/common/Card";
 import Icon from "@/components/common/Icon";
 import Modal from "@/components/common/Modal";
 import PageHeader from "@/components/common/PageHeader";
+import Pagination from "@/components/common/Pagination";
 import { SkeletonTable } from "@/components/common/Skeleton";
 import Table from "@/components/common/Table";
 import type { TableColumn } from "@/components/common/Table";
 import Textarea from "@/components/common/Textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useFetch } from "@/hooks/useFetch";
+import { usePagination } from "@/hooks/usePagination";
 import { assetService } from "@/services/assetService";
 import { maintenanceService } from "@/services/maintenanceService";
 import type { Asset } from "@/types/asset";
@@ -59,6 +61,12 @@ function Maintenance() {
   const fetchAvailable = useCallback(() => assetService.getAvailable(), []);
   const { data: availableAssets, refetch: refetchAssets } =
     useFetch<Asset[]>(fetchAvailable);
+
+  const items = records ?? [];
+  const { page, setPage, totalPages, pageItems, total } = usePagination(
+    items,
+    10,
+  );
 
   const [isStartOpen, setIsStartOpen] = useState(false);
   const [escalating, setEscalating] = useState<MaintenanceRecord | null>(null);
@@ -213,12 +221,21 @@ function Maintenance() {
         {isLoading && <SkeletonTable rows={4} columns={7} />}
         {error && <Alert>{error}</Alert>}
         {!isLoading && !error && (
-          <Table<MaintenanceRecord>
-            columns={columns}
-            data={records ?? []}
-            keyExtractor={(item) => item.id}
-            emptyMessage="No hay mantenimientos en esta vista"
-          />
+          <>
+            <Table<MaintenanceRecord>
+              columns={columns}
+              data={pageItems}
+              keyExtractor={(item) => item.id}
+              emptyMessage="No hay mantenimientos en esta vista"
+            />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              pageSize={10}
+              onChange={setPage}
+            />
+          </>
         )}
       </Card>
 

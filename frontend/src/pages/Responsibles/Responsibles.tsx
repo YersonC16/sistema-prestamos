@@ -5,10 +5,12 @@ import Button from "@/components/common/Button";
 import Card from "@/components/common/Card";
 import Icon from "@/components/common/Icon";
 import PageHeader from "@/components/common/PageHeader";
+import Pagination from "@/components/common/Pagination";
 import { SkeletonTable } from "@/components/common/Skeleton";
 import Table from "@/components/common/Table";
 import type { TableColumn } from "@/components/common/Table";
 import { useFetch } from "@/hooks/useFetch";
+import { usePagination } from "@/hooks/usePagination";
 import { responsibleService } from "@/services/responsibleService";
 import type { Responsible } from "@/types/responsible";
 import { DOCUMENT_TYPE_LABEL } from "@/utils/labels";
@@ -17,6 +19,11 @@ import ResponsibleFormModal from "./ResponsibleFormModal";
 function Responsibles() {
   const fetchAll = useCallback(() => responsibleService.getAll(), []);
   const { data, isLoading, error, refetch } = useFetch<Responsible[]>(fetchAll);
+
+  const { page, setPage, totalPages, pageItems, total } = usePagination(
+    data ?? [],
+    10,
+  );
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Responsible | null>(null);
@@ -70,12 +77,21 @@ function Responsibles() {
         {isLoading && <SkeletonTable rows={4} columns={5} />}
         {error && <Alert>{error}</Alert>}
         {!isLoading && !error && (
-          <Table<Responsible>
-            columns={columns}
-            data={data ?? []}
-            keyExtractor={(r) => r.id}
-            emptyMessage="No hay responsables registrados"
-          />
+          <>
+            <Table<Responsible>
+              columns={columns}
+              data={pageItems}
+              keyExtractor={(r) => r.id}
+              emptyMessage="No hay responsables registrados"
+            />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              pageSize={10}
+              onChange={setPage}
+            />
+          </>
         )}
       </Card>
 
