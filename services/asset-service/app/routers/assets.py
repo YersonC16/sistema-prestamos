@@ -10,9 +10,20 @@ from app.models.user import User, UserRole
 from app.schemas.asset import AssetCreate, AssetResponse
 from app.schemas.audit import AuditEntryResponse
 from app.services.asset_factory import AssetFactory
+from app.services.asset_flyweight import AssetCatalog
 from app.services.audit_service import record_audit
 
 router = APIRouter(prefix="/assets", tags=["Activos"])
+
+
+def _load_catalog(db: Session) -> AssetCatalog:
+    """Consulta solo lo necesario y arma el catálogo con flyweights compartidos."""
+    rows = (
+        db.query(Asset.id, Asset.code, Asset.status, Asset.name, Asset.asset_type, Asset.description)
+        .order_by(Asset.id)
+        .all()
+    )
+    return AssetCatalog.from_rows(rows)
 
 
 @router.post("/", response_model=AssetResponse)
@@ -45,7 +56,7 @@ def create_asset(
 
 @router.get("/", response_model=list[AssetResponse])
 def list_assets(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Asset).order_by(Asset.id).all()
+    return _load_catalog(db).summaries()
 
 
 @router.get("/available", response_model=list[AssetResponse])
@@ -60,6 +71,17 @@ def assets_summary(db: Session = Depends(get_db), current_user: User = Depends(g
     for status, total in rows:
         counts[status.value] = total
     return {"total": sum(counts.values()), **counts}
+
+
+@router.get("/catalog/stats")
+def catalog_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Muestra el efecto del Flyweight: cuántos activos y cuántos modelos compartidos."""
+    catalog = _load_catalog(db)
+    return {
+        "assets": catalog.total_items,
+        "shared_models": catalog.shared_models,
+        "duplicates_avoided": catalog.total_items - catalog.shared_models,
+    }
 
 
 @router.get("/{asset_id}", response_model=AssetResponse)
