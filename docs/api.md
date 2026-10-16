@@ -9,15 +9,16 @@ Los endpoints protegidos requieren `Authorization: Bearer <token>`.
 
 ## asset-service (8001)
 
-| Método | Ruta              | Descripción                   | Rol requerido              |
-| ------ | ----------------- | ----------------------------- | -------------------------- |
-| POST   | /auth/login       | Iniciar sesión (devuelve JWT) | Público                    |
-| POST   | /auth/register    | Crear usuario                 | Administrador              |
-| GET    | /auth/me          | Usuario autenticado           | Cualquiera autenticado     |
-| POST   | /assets/          | Registrar activo              | Administrador, Almacenista |
-| GET    | /assets/          | Listar activos                | Cualquiera autenticado     |
-| GET    | /assets/available | Listar activos disponibles    | Cualquiera autenticado     |
-| GET    | /health           | Estado del servicio           | Público                    |
+| Método | Ruta                  | Descripción                               | Rol requerido              |
+| ------ | --------------------- | ----------------------------------------- | -------------------------- |
+| POST   | /auth/login           | Iniciar sesión (devuelve JWT)             | Público                    |
+| POST   | /auth/register        | Crear usuario                             | Administrador              |
+| GET    | /auth/me              | Usuario autenticado                       | Cualquiera autenticado     |
+| POST   | /assets/              | Registrar activo                          | Administrador, Almacenista |
+| GET    | /assets/              | Listar activos                            | Cualquiera autenticado     |
+| GET    | /assets/available     | Listar activos disponibles                | Cualquiera autenticado     |
+| GET    | /health               | Estado del servicio                       | Público                    |
+| GET    | /assets/catalog/stats | Activos y modelos compartidos (Flyweight) | Cualquiera autenticado     |
 
 ## loan-service (8002)
 

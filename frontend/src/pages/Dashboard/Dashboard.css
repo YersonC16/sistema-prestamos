@@ -1,0 +1,23 @@
+.dashboard-fade-in {
+  animation: dashboard-fade-in 0.4s ease-out;
+}
+
+@keyframes dashboard-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--spacing-md);
+  font-size: 13px;
+  font-weight: 600;
+}

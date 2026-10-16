@@ -35,13 +35,20 @@ import Select from "@/components/common/Select";
 import type { MaintenanceLocation } from "@/types/maintenance";
 import Pagination from "@/components/common/Pagination";
 import { usePagination } from "@/hooks/usePagination";
+import { useSearchParams } from "react-router-dom";
 
 function Loans() {
   const { user } = useAuth();
   const canManage =
     user?.role === "administrador" || user?.role === "almacenista";
 
-  const [statusFilter, setStatusFilter] = useState<LoanStatus | "">("");
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get("status");
+  const isValidStatus = (value: string | null): value is LoanStatus =>
+    value === "activo" || value === "atrasado" || value === "devuelto";
+  const [statusFilter, setStatusFilter] = useState<LoanStatus | "">(
+    isValidStatus(initialStatus) ? initialStatus : "",
+  );
   const [search, setSearch] = useState("");
 
   const fetchLoans = useCallback(

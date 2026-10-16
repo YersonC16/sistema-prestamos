@@ -106,3 +106,27 @@ Los endpoints de `routers/loans.py` solo llaman a la fachada.
   proyecto no las tiene.
 - **Facade** complementa a Decorator: simplifica la entrada al módulo
   que los decoradores construyen por dentro.
+
+## Flyweight: asset-service
+
+**Ubicación:** `app/services/asset_flyweight.py`
+
+**Problema:** muchos activos son unidades del mismo modelo y repiten
+nombre, tipo y descripción. Con miles de activos esos datos se duplican
+en memoria.
+
+**Cómo funciona:** el estado compartido (intrínseco) vive una sola vez
+en `AssetModelFlyweight`, que es inmutable. `AssetModelFactory` entrega
+el flyweight existente o crea uno nuevo. Cada `AssetItem` guarda solo su
+estado único (id, código, estado) y una referencia al flyweight.
+
+| Rol GoF                      | En este proyecto      |
+| ---------------------------- | --------------------- |
+| Flyweight                    | `AssetModelFlyweight` |
+| Flyweight Factory            | `AssetModelFactory`   |
+| Contexto (estado extrínseco) | `AssetItem`           |
+| Cliente                      | `AssetCatalog`        |
+
+**Cuándo aporta:** con un volumen grande (multi-sede, reportes, cachés).
+Con pocos activos el ahorro es mínimo. `GET /assets/catalog/stats`
+muestra cuántos activos comparten cuántos modelos.

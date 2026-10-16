@@ -1,6 +1,8 @@
 import { useCallback } from "react";
+import { Link } from "react-router-dom";
 import Alert from "@/components/common/Alert";
 import Card from "@/components/common/Card";
+import Icon from "@/components/common/Icon";
 import PageHeader from "@/components/common/PageHeader";
 import { Skeleton, SkeletonTable } from "@/components/common/Skeleton";
 import StatCard from "@/components/common/StatCard";
@@ -16,6 +18,14 @@ import type { Loan, LoanHistoryEntry, LoanSummary } from "@/types/loan";
 import { firstName, formatDate } from "@/utils/format";
 import { ROLE_LABEL } from "@/utils/labels";
 import { toTimelineItems } from "@/utils/timeline";
+import { lazy, Suspense } from "react";
+
+const AssetStatusChart = lazy(() => import("./AssetStatusChart"));
+const LoanStatusChart = lazy(() => import("./LoanStatusChart"));
+import "./Dashboard.css";
+
+const OVERDUE_LIMIT = 5;
+const MOVEMENTS_LIMIT = 5;
 
 const overdueColumns: TableColumn<Loan>[] = [
   {
@@ -49,7 +59,7 @@ function Dashboard() {
   const fetchMovements = useCallback(
     () =>
       canSeeMovements
-        ? loanService.getMovements(8)
+        ? loanService.getMovements(MOVEMENTS_LIMIT)
         : Promise.resolve([] as LoanHistoryEntry[]),
     [canSeeMovements],
   );
@@ -60,9 +70,11 @@ function Dashboard() {
   const movements = useFetch<LoanHistoryEntry[]>(fetchMovements);
 
   const statsError = assets.error ?? loans.error;
+  const overdueList = (overdue.data ?? []).slice(0, OVERDUE_LIMIT);
+  const hasMoreOverdue = (overdue.data?.length ?? 0) > OVERDUE_LIMIT;
 
   return (
-    <div className="page">
+    <div className="page dashboard-fade-in">
       <PageHeader
         title={user ? `Hola, ${firstName(user.full_name)}` : "Panel"}
         subtitle="Resumen de la sede de Concreto"
@@ -120,16 +132,52 @@ function Dashboard() {
       )}
 
       <div className="grid-2">
+        <Card title="Estado del inventario">
+          {assets.isLoading && <Skeleton height="220px" borderRadius="14px" />}
+          {assets.error && <Alert>{assets.error}</Alert>}
+          {assets.data && (
+            <Suspense
+              fallback={<Skeleton height="220px" borderRadius="14px" />}
+            >
+              <AssetStatusChart summary={assets.data} />
+            </Suspense>
+          )}
+        </Card>
+
+        <Card title="Préstamos por estado">
+          {loans.isLoading && <Skeleton height="220px" borderRadius="14px" />}
+          {loans.error && <Alert>{loans.error}</Alert>}
+          {loans.data && (
+            <Suspense
+              fallback={<Skeleton height="220px" borderRadius="14px" />}
+            >
+              <LoanStatusChart summary={loans.data} />
+            </Suspense>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid-2">
         <Card title="Préstamos atrasados">
           {overdue.isLoading && <SkeletonTable rows={3} columns={3} />}
           {overdue.error && <Alert>{overdue.error}</Alert>}
           {!overdue.isLoading && !overdue.error && (
-            <Table<Loan>
-              columns={overdueColumns}
-              data={overdue.data ?? []}
-              keyExtractor={(loan) => loan.id}
-              emptyMessage="No hay préstamos atrasados"
-            />
+            <>
+              <Table<Loan>
+                columns={overdueColumns}
+                data={overdueList}
+                keyExtractor={(loan) => loan.id}
+                emptyMessage="No hay préstamos atrasados"
+              />
+              {hasMoreOverdue && (
+                <Link
+                  to="/prestamos?status=atrasado"
+                  className="dashboard-see-all"
+                >
+                  Ver todos los atrasados <Icon name="arrowRight" size={14} />
+                </Link>
+              )}
+            </>
           )}
         </Card>
 
@@ -138,7 +186,12 @@ function Dashboard() {
             {movements.isLoading && <SkeletonTable rows={4} columns={1} />}
             {movements.error && <Alert>{movements.error}</Alert>}
             {movements.data && (
-              <Timeline items={toTimelineItems(movements.data)} />
+              <>
+                <Timeline items={toTimelineItems(movements.data)} />
+                <Link to="/trazabilidad" className="dashboard-see-all">
+                  Ver toda la trazabilidad <Icon name="arrowRight" size={14} />
+                </Link>
+              </>
             )}
           </Card>
         ) : (

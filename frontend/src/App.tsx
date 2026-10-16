@@ -4,21 +4,24 @@ import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import { AuthProvider } from "@/context/AuthContext";
 import AssetDetail from "@/pages/AssetDetail";
 import Dashboard from "@/pages/Dashboard";
+import Home from "@/pages/Home";
 import Inventory from "@/pages/Inventory";
 import Loans from "@/pages/Loans";
 import Login from "@/pages/Login";
 import Maintenance from "@/pages/Maintenance";
+import Responsibles from "@/pages/Responsibles";
 import Traceability from "@/pages/Traceability";
 import Users from "@/pages/Users";
-import Responsibles from "@/pages/Responsibles";
-import Home from "@/pages/Home";
 
 function App() {
   return (
     <AuthProvider>
       <Routes>
+        {/* Rutas públicas: fuera de ProtectedRoute */}
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
 
+        {/* Rutas protegidas */}
         <Route
           element={
             <ProtectedRoute>
@@ -26,8 +29,6 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Home />} />
-
           <Route path="/panel" element={<Dashboard />} />
           <Route path="/inventario" element={<Inventory />} />
           <Route path="/inventario/:id" element={<AssetDetail />} />
@@ -57,8 +58,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/panel" replace />} />
         </Route>
+
+        {/* Cualquier ruta no reconocida vuelve al Home público */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
   );
