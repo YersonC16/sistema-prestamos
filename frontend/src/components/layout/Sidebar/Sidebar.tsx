@@ -30,6 +30,12 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["administrador", "almacenista"],
   },
   {
+    to: "/notificaciones",
+    label: "Notificaciones",
+    icon: "bell",
+    roles: ["administrador", "gerente", "jefe_de_planta"],
+  },
+  {
     to: "/usuarios",
     label: "Usuarios",
     icon: "users",

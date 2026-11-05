@@ -24,8 +24,18 @@ import { PASSWORD_HINT, validatePassword } from "@/utils/validation";
 const ROLES: UserRole[] = [
   "administrador",
   "almacenista",
-  "personal_autorizado",
+  "jefe_de_planta",
+  "gerente",
 ];
+const ROLES_WITH_SITE: UserRole[] = ["almacenista", "jefe_de_planta"];
+const SITE_PATTERN = /^[a-z0-9_-]+$/i;
+const SITE_ERROR =
+  "La sede solo puede tener letras, números, guion y guion bajo";
+
+function siteText(user: User): string {
+  if (user.role === "administrador" || user.role === "gerente") return "Todas";
+  return user.site.charAt(0).toUpperCase() + user.site.slice(1);
+}
 
 function Users() {
   const { user: me } = useAuth();
@@ -49,13 +59,15 @@ function Users() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState<UserRole>("personal_autorizado");
+  const [newRole, setNewRole] = useState<UserRole>("gerente");
+  const [newSite, setNewSite] = useState("concreto");
   const [createError, setCreateError] = useState("");
 
   // Editar
   const [editing, setEditing] = useState<User | null>(null);
   const [editName, setEditName] = useState("");
-  const [editRole, setEditRole] = useState<UserRole>("personal_autorizado");
+  const [editRole, setEditRole] = useState<UserRole>("gerente");
+  const [editSite, setEditSite] = useState("concreto");
   const [editActive, setEditActive] = useState("true");
   const [editError, setEditError] = useState("");
 
@@ -69,7 +81,8 @@ function Users() {
     setNewName("");
     setNewEmail("");
     setNewPassword("");
-    setNewRole("personal_autorizado");
+    setNewRole("gerente");
+    setNewSite("concreto");
     setCreateError("");
   };
 
@@ -79,6 +92,9 @@ function Users() {
       return setCreateError("El nombre debe tener al menos 2 caracteres");
     const passwordError = validatePassword(newPassword);
     if (passwordError) return setCreateError(passwordError);
+    const usesSite = ROLES_WITH_SITE.includes(newRole);
+    if (usesSite && !SITE_PATTERN.test(newSite.trim()))
+      return setCreateError(SITE_ERROR);
 
     setIsSaving(true);
     setCreateError("");
@@ -88,6 +104,7 @@ function Users() {
         email: newEmail.trim(),
         password: newPassword,
         role: newRole,
+        site: usesSite ? newSite.trim().toLowerCase() : "concreto",
       });
       closeCreate();
       refetch();
@@ -102,6 +119,7 @@ function Users() {
     setEditing(target);
     setEditName(target.full_name);
     setEditRole(target.role);
+    setEditSite(target.site);
     setEditActive(String(target.is_active));
     setEditError("");
   };
@@ -111,6 +129,9 @@ function Users() {
     if (!editing) return;
     if (editName.trim().length < 2)
       return setEditError("El nombre debe tener al menos 2 caracteres");
+    const usesSite = ROLES_WITH_SITE.includes(editRole);
+    if (usesSite && !SITE_PATTERN.test(editSite.trim()))
+      return setEditError(SITE_ERROR);
 
     setIsSaving(true);
     setEditError("");
@@ -118,6 +139,7 @@ function Users() {
       await userService.update(editing.id, {
         full_name: editName.trim(),
         role: editRole,
+        site: usesSite ? editSite.trim().toLowerCase() : editing.site,
         is_active: editActive === "true",
       });
       setEditing(null);
@@ -167,6 +189,7 @@ function Users() {
       label: "Rol",
       render: (u) => <Badge tone="info">{ROLE_LABEL[u.role]}</Badge>,
     },
+    { key: "site", label: "Sede", render: (u) => siteText(u) },
     {
       key: "is_active",
       label: "Estado",
@@ -198,7 +221,7 @@ function Users() {
     <div className="page">
       <PageHeader
         title="Usuarios"
-        subtitle="Gestión de accesos y roles del sistema."
+        subtitle="Gestión de accesos, roles y sedes del sistema."
         actions={
           <Button onClick={() => setIsCreateOpen(true)}>
             <Icon name="plus" size={16} /> Nuevo usuario
@@ -207,7 +230,7 @@ function Users() {
       />
 
       <Card>
-        {isLoading && <SkeletonTable rows={4} columns={5} />}
+        {isLoading && <SkeletonTable rows={4} columns={6} />}
         {error && <Alert>{error}</Alert>}
         {!isLoading && !error && (
           <>
@@ -237,7 +260,7 @@ function Users() {
             required
           />
           <Input
-            label="Correo electrónico"
+            label="Correo electrónico (con este inicia sesión)"
             type="email"
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
@@ -263,6 +286,23 @@ function Users() {
               </option>
             ))}
           </Select>
+          {ROLES_WITH_SITE.includes(newRole) ? (
+            <Input
+              label="Sede"
+              value={newSite}
+              onChange={(e) => setNewSite(e.target.value)}
+              placeholder="concreto"
+              required
+            />
+          ) : (
+            <Alert tone="info">Este rol ve todas las sedes.</Alert>
+          )}
+          {newRole === "jefe_de_planta" && (
+            <Alert tone="info">
+              Las notificaciones de la sede llegan al correo con el que este
+              usuario inicia sesión.
+            </Alert>
+          )}
           {createError && <Alert>{createError}</Alert>}
           <div className="form-actions">
             <Button variant="secondary" onClick={closeCreate}>
@@ -301,6 +341,16 @@ function Users() {
                 </option>
               ))}
             </Select>
+            {ROLES_WITH_SITE.includes(editRole) ? (
+              <Input
+                label="Sede"
+                value={editSite}
+                onChange={(e) => setEditSite(e.target.value)}
+                required
+              />
+            ) : (
+              <Alert tone="info">Este rol ve todas las sedes.</Alert>
+            )}
             <Select
               label="Estado"
               value={editActive}

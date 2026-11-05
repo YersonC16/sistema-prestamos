@@ -12,6 +12,7 @@ from app.schemas.audit import AuditEntryResponse
 from app.services.asset_factory import AssetFactory
 from app.services.asset_flyweight import AssetCatalog
 from app.services.audit_service import record_audit
+from app.services.notifications.subject import emit_event
 
 router = APIRouter(prefix="/assets", tags=["Activos"])
 
@@ -50,6 +51,14 @@ def create_asset(
         db, "asset", asset.id, "activo_registrado",
         f"{asset.name} ({asset.asset_type.value}){code_text}",
         current_user.full_name, current_user.role.value,
+    )
+    # Observer: solo se avisa que pasó algo; quién reacciona no se sabe aquí
+    emit_event(
+        "activo_registrado",
+        asset_id=asset.id,
+        asset_name=asset.name,
+        actor=current_user.full_name,
+        detail=f"Tipo {asset.asset_type.value}{code_text}",
     )
     return asset
 

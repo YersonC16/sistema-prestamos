@@ -1,10 +1,15 @@
-export type UserRole = "administrador" | "almacenista" | "personal_autorizado";
+export type UserRole =
+  | "administrador"
+  | "almacenista"
+  | "jefe_de_planta"
+  | "gerente";
 
 export interface User {
   id: number;
   full_name: string;
   email: string;
   role: UserRole;
+  site: string;
   is_active: boolean;
 }
 
@@ -23,11 +28,13 @@ export interface UserCreatePayload {
   email: string;
   password: string;
   role: UserRole;
+  site?: string;
 }
 
 export interface UserUpdatePayload {
   full_name?: string;
   role?: UserRole;
+  site?: string;
   is_active?: boolean;
 }
 

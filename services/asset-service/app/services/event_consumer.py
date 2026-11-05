@@ -10,6 +10,7 @@ from app.core.database import SessionLocal
 from app.models.asset import Asset, AssetStatus
 from app.models.maintenance import Maintenance
 from app.services.audit_service import record_audit
+from app.services.notifications.subject import emit_event
 
 EXCHANGE_NAME = "prestamos_events"
 QUEUE_NAME = "asset_status_queue"
@@ -82,6 +83,8 @@ def _apply_event(routing_key: str, data: dict) -> None:
 
         db.commit()
         record_audit(db, "asset", asset.id, action, detail, actor, None)
+        # Observer: el nombre de la acción coincide con el tipo de evento notificable
+        emit_event(action, asset_id=asset.id, asset_name=asset.name, actor=actor, detail=detail)
         print(f"[broker] Activo {asset.id}: {action}")
     finally:
         db.close()

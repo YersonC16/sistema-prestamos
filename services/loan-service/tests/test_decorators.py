@@ -48,7 +48,7 @@ def test_los_decoradores_se_ejecutan_en_capas():
 def test_el_guardia_de_roles_bloquea_antes_de_ejecutar_nada():
     calls = []
     with pytest.raises(PermissionDeniedError):
-        _compose(calls).execute(_context("personal_autorizado"))
+        _compose(calls).execute(_context("GERENTE"))
     assert calls == []
 
 

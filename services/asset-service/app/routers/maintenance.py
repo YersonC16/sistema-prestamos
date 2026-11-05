@@ -14,6 +14,7 @@ from app.schemas.maintenance import (
     MaintenanceResponse,
 )
 from app.services.audit_service import record_audit
+from app.services.notifications.subject import emit_event
 
 router = APIRouter(prefix="/maintenance", tags=["Mantenimiento"])
 managers = require_roles(UserRole.ADMINISTRADOR, UserRole.ALMACENISTA)
@@ -53,11 +54,9 @@ def start_maintenance(payload: MaintenanceCreate, db: Session = Depends(get_db),
     destination = (
         f"Asignado a {maintenance.assigned_to}" if payload.location == "interno" else f"Enviado a {maintenance.provider_name}"
     )
-    record_audit(
-        db, "asset", asset.id, "mantenimiento_iniciado",
-        f"{destination} ({maintenance.maintenance_type}): {maintenance.reason}",
-        user.full_name, user.role.value,
-    )
+    detail = f"{destination} ({maintenance.maintenance_type}): {maintenance.reason}"
+    record_audit(db, "asset", asset.id, "mantenimiento_iniciado", detail, user.full_name, user.role.value)
+    emit_event("mantenimiento_iniciado", asset_id=asset.id, asset_name=asset.name, actor=user.full_name, detail=detail)
     return maintenance
 
 
@@ -87,6 +86,13 @@ def escalate_maintenance(
     if payload.notes:
         detail += f": {payload.notes}"
     record_audit(db, "asset", maintenance.asset_id, "mantenimiento_escalado_externo", detail, user.full_name, user.role.value)
+    emit_event(
+        "mantenimiento_escalado_externo",
+        asset_id=maintenance.asset_id,
+        asset_name=maintenance.asset_name,
+        actor=user.full_name,
+        detail=detail,
+    )
     return maintenance
 
 
@@ -114,10 +120,14 @@ def finish_maintenance(
     db.refresh(maintenance)
 
     where = maintenance.assigned_to if maintenance.location == "interno" else maintenance.provider_name
-    record_audit(
-        db, "asset", maintenance.asset_id, "mantenimiento_finalizado",
-        f"Finalizado por {where}" + (f": {maintenance.finish_notes}" if maintenance.finish_notes else ""),
-        user.full_name, user.role.value,
+    detail = f"Finalizado por {where}" + (f": {maintenance.finish_notes}" if maintenance.finish_notes else "")
+    record_audit(db, "asset", maintenance.asset_id, "mantenimiento_finalizado", detail, user.full_name, user.role.value)
+    emit_event(
+        "mantenimiento_finalizado",
+        asset_id=maintenance.asset_id,
+        asset_name=maintenance.asset_name,
+        actor=user.full_name,
+        detail=detail,
     )
     return maintenance
 

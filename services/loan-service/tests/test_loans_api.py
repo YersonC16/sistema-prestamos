@@ -66,8 +66,8 @@ def test_almacenista_registra_prestamo_y_queda_trazado(client, make_token, respo
     assert history[0]["performed_by"] == "Ana Almacén"
 
 
-def test_personal_autorizado_no_puede_registrar_prestamos(client, make_token, responsible_id, fake_external_services):
-    token = make_token(role="personal_autorizado", name="Luis")
+def test_GERENTE_no_puede_registrar_prestamos(client, make_token, responsible_id, fake_external_services):
+    token = make_token(role="GERENTE", name="Luis")
     response = client.post("/loans/", json=_payload(responsible_id), headers=_auth(token))
     assert response.status_code == 403
     assert fake_external_services == []

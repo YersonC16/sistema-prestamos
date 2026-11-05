@@ -72,6 +72,15 @@ function Login() {
           <Button type="submit" isLoading={isSubmitting}>
             Iniciar sesión
           </Button>
+
+          {/* Botón para volver al Inicio / Home */}
+          <Button
+            type="button"
+            variant="secondary" // o la variante de estilo que use tu componente Button (ej. "outline", "text")
+            onClick={() => navigate("/")}
+          >
+            Volver al inicio
+          </Button>
         </form>
       </Card>
     </div>

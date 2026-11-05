@@ -38,3 +38,6 @@ Los endpoints protegidos requieren `Authorization: Bearer <token>`.
 | 403    | Rol sin permiso                                |
 | 404    | Recurso no encontrado                          |
 | 502    | loan-service no pudo consultar a asset-service |
+
+| GET | /notifications/ | Historial de notificaciones (jefe: su sede; gerente y administrador: todas) | Administrador, Gerente, Jefe de planta |
+| POST | /lab/notifications | Compara sin patrón, Observer y Observer + Strategy | Administrador |

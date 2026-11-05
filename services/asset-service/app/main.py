@@ -10,11 +10,14 @@ from app.core.database import Base, engine
 # Importar los modelos los registra en Base.metadata (lo necesita create_all)
 from app.models import asset as _asset_model  # noqa: F401
 from app.models import audit_log as _audit_model  # noqa: F401
+from app.models import inapp_notification as _inapp_model  # noqa: F401
 from app.models import maintenance as _maintenance_model  # noqa: F401
+from app.models import notification_log as _notification_model  # noqa: F401
 from app.models import user as _user_model  # noqa: F401
-from app.routers import assets, audit, auth, users
+from app.routers import assets, audit, auth, inbox, lab, notifications, users
 from app.routers import maintenance as maintenance_router
 from app.services.event_consumer import start_consumer_thread
+from app.services.notifications.bootstrap import configure_notifications
 
 IS_TESTING = os.getenv("TESTING") == "true"
 
@@ -24,6 +27,7 @@ async def lifespan(app: FastAPI):
     # En pruebas no se toca la base real ni se abren hilos de fondo
     if not IS_TESTING:
         Base.metadata.create_all(bind=engine)
+        configure_notifications()  # engancha los observadores al sujeto
         start_consumer_thread()
     yield
 
@@ -53,6 +57,9 @@ app.include_router(users.router)
 app.include_router(assets.router)
 app.include_router(maintenance_router.router)
 app.include_router(audit.router)
+app.include_router(notifications.router)
+app.include_router(inbox.router)
+app.include_router(lab.router)
 
 
 @app.get("/health")

@@ -28,7 +28,7 @@ def test_crear_activo_como_administrador(client, db_session):
 
 
 def test_crear_activo_sin_permiso_retorna_403(client, db_session):
-    token = _crear_usuario_y_token(db_session, UserRole.PERSONAL_AUTORIZADO)
+    token = _crear_usuario_y_token(db_session, UserRole.GERENTE)
     response = client.post(
         "/assets/",
         json={"name": "Taladro", "asset_type": "herramienta"},

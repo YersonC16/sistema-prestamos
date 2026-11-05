@@ -5,6 +5,10 @@ from pydantic import BaseModel, ConfigDict, EmailStr, StringConstraints, field_v
 from app.models.user import UserRole
 
 FullName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=150)]
+Site = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, to_lower=True, min_length=2, max_length=50, pattern=r"^[A-Za-z0-9_-]+$"),
+]
 
 
 def check_password_strength(value: str) -> str:
@@ -23,7 +27,8 @@ class UserCreate(BaseModel):
     full_name: FullName
     email: EmailStr
     password: str
-    role: UserRole = UserRole.PERSONAL_AUTORIZADO
+    role: UserRole = UserRole.GERENTE
+    site: Site = "concreto"
 
     @field_validator("password")
     @classmethod
@@ -34,6 +39,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     full_name: FullName | None = None
     role: UserRole | None = None
+    site: Site | None = None
     is_active: bool | None = None
 
 
@@ -63,6 +69,7 @@ class UserResponse(BaseModel):
     full_name: str
     email: str
     role: UserRole
+    site: str
     is_active: bool
 
 

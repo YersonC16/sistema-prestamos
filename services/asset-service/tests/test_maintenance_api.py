@@ -162,9 +162,9 @@ def test_no_se_envia_a_mantenimiento_un_activo_prestado(client, make_user, db_se
     assert response.status_code == 400
 
 
-def test_personal_autorizado_no_puede_iniciar_mantenimiento(client, make_user):
+def test_GERENTE_no_puede_iniciar_mantenimiento(client, make_user):
     _, admin_token = make_user(UserRole.ADMINISTRADOR)
-    _, staff_token = make_user(UserRole.PERSONAL_AUTORIZADO)
+    _, staff_token = make_user(UserRole.GERENTE)
     asset = _create_asset(client, admin_token)
 
     response = _start_internal(client, staff_token, asset["id"], assigned_to="Ana")

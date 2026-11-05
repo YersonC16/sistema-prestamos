@@ -37,10 +37,28 @@ export const MAINTENANCE_TYPE_LABEL: Record<MaintenanceType, string> = {
   correctivo: "Correctivo",
 };
 
+export const MAINTENANCE_LOCATION_LABEL: Record<string, string> = {
+  interno: "Interno",
+  externo: "Proveedor externo",
+};
+
+export const MAINTENANCE_SOURCE_LABEL: Record<string, string> = {
+  manual: "Registrado manualmente",
+  devolucion_con_novedad: "Devolución con novedad",
+};
+
+export const DOCUMENT_TYPE_LABEL: Record<string, string> = {
+  CC: "Cédula de ciudadanía",
+  TI: "Tarjeta de identidad",
+  CE: "Cédula de extranjería",
+  PASAPORTE: "Pasaporte",
+};
+
 export const ROLE_LABEL: Record<UserRole, string> = {
   administrador: "Administrador",
   almacenista: "Almacenista",
-  personal_autorizado: "Personal autorizado",
+  jefe_de_planta: "Jefe de planta",
+  gerente: "Gerente",
 };
 
 export function roleText(role: string | null): string {
@@ -49,6 +67,31 @@ export function roleText(role: string | null): string {
   return ROLE_LABEL[role as UserRole] ?? role;
 }
 
+export const NOTIFICATION_STATUS: Record<string, LabelTone> = {
+  enviado: { label: "Enviado", tone: "success" },
+  simulado: { label: "Simulado", tone: "info" },
+  fallido: { label: "Fallido", tone: "danger" },
+  sin_destinatario: { label: "Sin destinatario", tone: "warning" },
+};
+
+export function notificationStatus(status: string): LabelTone {
+  return NOTIFICATION_STATUS[status] ?? { label: status, tone: "neutral" };
+}
+
+export const EVENT_OPTIONS = [
+  { value: "activo_registrado", label: "Ingreso de un activo" },
+  { value: "prestamo_creado", label: "Préstamo registrado" },
+  { value: "prestamo_devuelto", label: "Devolución en buen estado" },
+  { value: "devolucion_con_novedad", label: "Devolución con novedad" },
+  { value: "prestamo_atrasado", label: "Préstamo atrasado" },
+  { value: "mantenimiento_iniciado", label: "Mantenimiento iniciado" },
+  {
+    value: "mantenimiento_escalado_externo",
+    label: "Mantenimiento escalado a externo",
+  },
+  { value: "mantenimiento_finalizado", label: "Mantenimiento finalizado" },
+];
+
 const ACTIONS: Record<string, LabelTone> = {
   activo_registrado: { label: "Activo registrado", tone: "info" },
   prestamo_creado: { label: "Préstamo registrado", tone: "info" },
@@ -56,6 +99,10 @@ const ACTIONS: Record<string, LabelTone> = {
   devolucion_con_novedad: { label: "Devolución con novedad", tone: "warning" },
   prestamo_atrasado: { label: "Préstamo atrasado", tone: "danger" },
   mantenimiento_iniciado: { label: "Mantenimiento iniciado", tone: "warning" },
+  mantenimiento_escalado_externo: {
+    label: "Mantenimiento escalado a externo",
+    tone: "warning",
+  },
   mantenimiento_finalizado: {
     label: "Mantenimiento finalizado",
     tone: "success",
@@ -70,23 +117,6 @@ const ACTIONS: Record<string, LabelTone> = {
   },
   password_cambiada: { label: "Contraseña cambiada", tone: "neutral" },
   password_restablecida: { label: "Contraseña restablecida", tone: "warning" },
-};
-
-export const DOCUMENT_TYPE_LABEL: Record<string, string> = {
-  CC: "Cédula de ciudadanía",
-  TI: "Tarjeta de identidad",
-  CE: "Cédula de extranjería",
-  PASAPORTE: "Pasaporte",
-};
-
-export const MAINTENANCE_LOCATION_LABEL: Record<string, string> = {
-  interno: "Interno",
-  externo: "Proveedor externo",
-};
-
-export const MAINTENANCE_SOURCE_LABEL: Record<string, string> = {
-  manual: "Registrado manualmente",
-  devolucion_con_novedad: "Devolución con novedad",
 };
 
 export function actionMeta(action: string): LabelTone {

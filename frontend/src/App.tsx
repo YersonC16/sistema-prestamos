@@ -12,6 +12,7 @@ import Maintenance from "@/pages/Maintenance";
 import Responsibles from "@/pages/Responsibles";
 import Traceability from "@/pages/Traceability";
 import Users from "@/pages/Users";
+import Notifications from "@/pages/Notifications";
 
 function App() {
   return (
@@ -29,6 +30,16 @@ function App() {
             </ProtectedRoute>
           }
         >
+          <Route
+            path="/notificaciones"
+            element={
+              <ProtectedRoute
+                allowedRoles={["administrador", "gerente", "jefe_de_planta"]}
+              >
+                <Notifications />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/panel" element={<Dashboard />} />
           <Route path="/inventario" element={<Inventory />} />
           <Route path="/inventario/:id" element={<AssetDetail />} />

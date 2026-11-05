@@ -1,5 +1,6 @@
 import logo from "@/assets/logo";
 import Icon from "@/components/common/Icon";
+import NotificationBell from "@/components/layout/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { initials } from "@/utils/format";
 import { ROLE_LABEL } from "@/utils/labels";
@@ -30,6 +31,7 @@ function Navbar({ onToggleSidebar, onChangePassword }: NavbarProps) {
 
       {user && (
         <div className="navbar-user">
+          {user.role === "jefe_de_planta" && <NotificationBell />}
           <div className="navbar-avatar" aria-hidden="true">
             {initials(user.full_name)}
           </div>

@@ -9,7 +9,8 @@ from app.core.database import Base
 class UserRole(str, enum.Enum):
     ADMINISTRADOR = "administrador"
     ALMACENISTA = "almacenista"
-    PERSONAL_AUTORIZADO = "personal_autorizado"
+    JEFE_DE_PLANTA = "jefe_de_planta"
+    GERENTE = "gerente"
 
 
 _IS_TESTING = os.getenv("TESTING") == "true"
@@ -28,6 +29,7 @@ class User(Base):
     role = Column(
         Enum(UserRole, name="userrole", schema=_enum_schema, values_callable=lambda e: [m.value for m in e]),
         nullable=False,
-        default=UserRole.PERSONAL_AUTORIZADO,
+        default=UserRole.GERENTE,
     )
+    site = Column(String(50), nullable=False, default="concreto", server_default="concreto")
     is_active = Column(Boolean, nullable=False, default=True, server_default=true())

@@ -37,6 +37,15 @@ services:
       timeout: 5s
       retries: 5
 
+  ##nuevo servicio para Mailpit
+  mailpit:
+    image: axllent/mailpit
+    container_name: prestamos_mailpit
+    restart: always
+    ports:
+      - "8025:8025" # bandeja de entrada web: http://localhost:8025
+    networks:
+      - prestamos_network
   asset-service:
     build:
       context: ./services/asset-service
@@ -48,6 +57,13 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_ALGORITHM: HS256
       JWT_EXPIRE_MINUTES: 120
+      DEFAULT_SITE: concreto
+      SMTP_HOST: ${SMTP_HOST-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-notificaciones@concreto.local}
     ports:
       - "8001:8001"
     depends_on:
@@ -55,6 +71,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     networks:
       - prestamos_network
 

@@ -305,3 +305,46 @@ a:not(.btn, .home-login-btn, .home-cta, .sidebar-link):hover {
   align-items: center;
   gap: 4px;
 }
+
+/* ===== Pestaña de pruebas de patrones ===== */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+}
+.lab-card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+.lab-note {
+  font-size: 13px;
+  color: var(--color-text-light);
+  margin-bottom: var(--spacing-md);
+}
+.lab-steps {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: var(--spacing-md);
+}
+.lab-delivery {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 13px;
+  padding: 6px 0;
+  border-top: 1px dashed var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

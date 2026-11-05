@@ -55,3 +55,17 @@ export function initials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 }
+
+/** Tiempo transcurrido en lenguaje natural: "hace 5 min". Pasadas 24 horas muestra la fecha. */
+export function timeAgo(value: string): string {
+  const seconds = Math.max(
+    0,
+    Math.floor((Date.now() - parseServerDate(value).getTime()) / 1000),
+  );
+  if (seconds < 60) return "hace un momento";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  return formatDateTime(value);
+}

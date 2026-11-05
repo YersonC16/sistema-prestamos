@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user, require_roles
 from app.core.login_guard import login_tracker
 from app.core.security import create_access_token, hash_password, verify_password
+from app.core.user_rules import ensure_single_plant_manager
 from app.models.user import User, UserRole
 from app.schemas.user import PasswordChange, Token, UserCreate, UserResponse
 from app.services.audit_service import record_audit
@@ -24,17 +25,21 @@ def register_user(
     if db.query(User).filter(func.lower(User.email) == email).first():
         raise HTTPException(400, "Ya existe un usuario con ese correo")
 
+    if payload.role == UserRole.JEFE_DE_PLANTA:
+        ensure_single_plant_manager(db, payload.site)
+
     user = User(
         full_name=payload.full_name,
         email=email,
         hashed_password=hash_password(payload.password),
         role=payload.role,
+        site=payload.site,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
     record_audit(
-        db, "user", user.id, "usuario_creado", f"{user.email} con rol {user.role.value}",
+        db, "user", user.id, "usuario_creado", f"{user.email} con rol {user.role.value} (sede {user.site})",
         current_user.full_name, current_user.role.value,
     )
     return user

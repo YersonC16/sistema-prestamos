@@ -15,6 +15,17 @@ class Settings(BaseSettings):
     login_max_attempts: int = 5
     login_lock_seconds: int = 300
 
+    # Sedes y notificaciones
+    default_site: str = "concreto"
+    local_utc_offset_hours: int = -5  # Colombia
+    notifications_enabled: bool = True
+    smtp_host: str = ""  # vacío = los correos se simulan (no se envían)
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "notificaciones@concreto.local"
+    smtp_starttls: bool = True
+
     @field_validator("jwt_secret_key")
     @classmethod
     def secret_must_be_long_enough(cls, value: str) -> str:

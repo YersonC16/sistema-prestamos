@@ -130,3 +130,34 @@ estado único (id, código, estado) y una referencia al flyweight.
 **Cuándo aporta:** con un volumen grande (multi-sede, reportes, cachés).
 Con pocos activos el ahorro es mínimo. `GET /assets/catalog/stats`
 muestra cuántos activos comparten cuántos modelos.
+
+## Observer: asset-service
+
+**Ubicación:** `app/services/notifications/` (`subject.py`, `observers.py`)
+
+**Problema:** al registrar un activo, prestar o dar mantenimiento hay que
+avisar al jefe de planta, sin que el código que detecta el cambio conozca
+quién reacciona ni cómo.
+
+**Cómo funciona:** quien detecta el cambio llama `emit_event()`.
+`EventSubject` avisa a sus observadores. `PlantManagerEmailObserver` busca
+al jefe de planta activo de la sede del evento y le envía un correo en
+segundo plano, registrando cada intento en `notification_log`. Un
+observador que falla no afecta a los demás ni a la operación original.
+
+## Strategy: pestaña de pruebas
+
+**Ubicación:** `app/services/notifications/lab/with_observer_strategy.py`
+
+**Problema:** el canal de envío (correo, WhatsApp) cambia, y no debe
+obligar a modificar el observador.
+
+**Cómo funciona:** el observador delega el envío en una `DeliveryStrategy`
+(`EmailStrategy`, `SimulatedStrategy`) que se elige en ejecución. Agregar
+un canal es agregar una clase. En la lógica real solo se usa Observer; la
+pestaña de pruebas compara las tres variantes (sin patrón, Observer y
+Observer + Strategy) y se puede borrar sin afectar el sistema.
+
+La pestaña de pruebas compara cuatro variantes en una matriz de 2×2
+(con o sin Observer, con o sin Strategy): sin patrones, solo Observer,
+solo Strategy y Observer + Strategy. Se puede borrar sin afectar el sistema.
