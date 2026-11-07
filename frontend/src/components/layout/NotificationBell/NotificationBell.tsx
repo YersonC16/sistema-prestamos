@@ -39,6 +39,9 @@ function NotificationBell() {
 
   // Pregunta al iniciar, cada 30 segundos y al volver a la pestaña
   useEffect(() => {
+    // El setState de refresh() ocurre después del await (cuando llega la respuesta),
+    // no de forma síncrona: no genera renders en cascada.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
     const timer = window.setInterval(() => void refresh(), POLL_MS);
     const onFocus = () => void refresh();
