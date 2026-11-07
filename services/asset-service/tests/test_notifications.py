@@ -244,9 +244,9 @@ def test_el_historial_de_notificaciones_depende_del_rol(client, make_user, db_se
 
 def test_el_laboratorio_ejecuta_los_cuatro_enfoques(client, make_user, monkeypatch, db_session):
     monkeypatch.setattr("app.services.notifications.observers.SessionLocal", TestingSessionLocal)
-    _, admin_token = make_user(UserRole.ADMINISTRADOR)
+    _, admin_token = make_user(UserRole.ADMINISTRADOR, email="lab-admin@test.com")
     make_user(UserRole.JEFE_DE_PLANTA, email="jefe@concreto.com")
-    _, store_token = make_user(UserRole.ALMACENISTA)
+    _, store_token = make_user(UserRole.ALMACENISTA, email="lab-store@test.com")
     body = {"event_type": "prestamo_creado", "site": "concreto", "channel": "simulado"}
 
     response = client.post("/lab/notifications", json=body, headers=_auth(admin_token))
@@ -261,22 +261,4 @@ def test_el_laboratorio_ejecuta_los_cuatro_enfoques(client, make_user, monkeypat
         assert report["deliveries"][0]["status"] == "simulado"
 
     assert db_session.query(NotificationLog).count() == 4  # cada variante deja su registro
-    assert client.post("/lab/notifications", json=body, headers=_auth(store_token)).status_code == 403
-    monkeypatch.setattr("app.services.notifications.observers.SessionLocal", TestingSessionLocal)
-    _, admin_token = make_user(UserRole.ADMINISTRADOR)
-    make_user(UserRole.JEFE_DE_PLANTA, email="jefe@concreto.com")
-    _, store_token = make_user(UserRole.ALMACENISTA)
-    body = {"event_type": "prestamo_creado", "site": "concreto", "channel": "simulado"}
-
-    response = client.post("/lab/notifications", json=body, headers=_auth(admin_token))
-    assert response.status_code == 200
-
-    reports = response.json()["reports"]
-    assert [report["mode"] for report in reports] == ["sin_patron", "observer", "observer_strategy"]
-    for report in reports:
-        assert report["steps"]
-        assert len(report["deliveries"]) == 1
-        assert report["deliveries"][0]["recipient"] == "jefe@concreto.com"
-        assert report["deliveries"][0]["status"] == "simulado"
-
     assert client.post("/lab/notifications", json=body, headers=_auth(store_token)).status_code == 403
