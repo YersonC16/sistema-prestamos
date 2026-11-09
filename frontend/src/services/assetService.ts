@@ -2,6 +2,8 @@ import { assetApi } from "./apiClients";
 import type {
   Asset,
   AssetCreatePayload,
+  AssetDecommissionPayload,
+  AssetDetail,
   AssetSummary,
   AuditEntry,
 } from "@/types/asset";
@@ -17,13 +19,24 @@ export const assetService = {
     return data;
   },
 
-  getById: async (id: number): Promise<Asset> => {
-    const { data } = await assetApi.get<Asset>(`/assets/${id}`);
+  getById: async (id: number): Promise<AssetDetail> => {
+    const { data } = await assetApi.get<AssetDetail>(`/assets/${id}`);
     return data;
   },
 
   create: async (payload: AssetCreatePayload): Promise<Asset> => {
     const { data } = await assetApi.post<Asset>("/assets/", payload);
+    return data;
+  },
+
+  decommission: async (
+    id: number,
+    payload: AssetDecommissionPayload,
+  ): Promise<AssetDetail> => {
+    const { data } = await assetApi.post<AssetDetail>(
+      `/assets/${id}/decommission`,
+      payload,
+    );
     return data;
   },
 

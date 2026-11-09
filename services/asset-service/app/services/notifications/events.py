@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 EVENT_TYPES = (
     "activo_registrado",
+    "activo_dado_de_baja",
     "prestamo_creado",
     "prestamo_devuelto",
     "devolucion_con_novedad",

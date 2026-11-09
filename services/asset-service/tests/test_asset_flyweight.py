@@ -38,16 +38,40 @@ def test_el_flyweight_es_inmutable():
         model.name = "Otro nombre"
 
 
+
 def test_describe_combina_estado_compartido_y_unico():
-    model = AssetModelFactory().get_model("Taladro", AssetType.HERRAMIENTA, "Percutor")
-    assert model.describe(7, "TAL-007", AssetStatus.PRESTADO) == {
+    model = AssetModelFactory().get_model("Taladro", AssetType.HERRAMIENTA, "Percutor", "Dewalt")
+    assert model.describe(7, "TAL-007", AssetStatus.PRESTADO, "SN-77") == {
         "id": 7,
         "name": "Taladro",
         "code": "TAL-007",
+        "brand": "Dewalt",
+        "serial_number": "SN-77",
         "asset_type": AssetType.HERRAMIENTA,
         "status": AssetStatus.PRESTADO,
         "description": "Percutor",
     }
+
+
+def test_la_marca_hace_parte_del_estado_compartido():
+    factory = AssetModelFactory()
+    first = factory.get_model("Taladro", AssetType.HERRAMIENTA, "Percutor", "Dewalt")
+    same = factory.get_model("Taladro", AssetType.HERRAMIENTA, "Percutor", "Dewalt")
+    other = factory.get_model("Taladro", AssetType.HERRAMIENTA, "Percutor", "Makita")
+    assert first is same
+    assert first is not other
+    assert factory.count() == 2
+
+
+def test_el_numero_de_serie_es_estado_unico_de_cada_activo():
+    catalog = AssetCatalog()
+    for number in range(3):
+        catalog.add(
+            number, f"TAL-{number}", AssetStatus.DISPONIBLE, "Taladro", AssetType.HERRAMIENTA, "Percutor",
+            "Dewalt", f"SN-{number}",
+        )
+    assert catalog.shared_models == 1  # la marca se comparte
+    assert [item.summary()["serial_number"] for item in catalog.items] == ["SN-0", "SN-1", "SN-2"]
 
 
 def test_listado_y_estadisticas_del_catalogo(client, make_user):

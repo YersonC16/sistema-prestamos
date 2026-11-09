@@ -5,6 +5,7 @@ from app.services.notifications.events import DomainEvent
 
 TITLES = {
     "activo_registrado": "Nuevo activo registrado",
+    "activo_dado_de_baja": "Activo dado de baja",
     "prestamo_creado": "Préstamo registrado",
     "prestamo_devuelto": "Devolución registrada",
     "devolucion_con_novedad": "Devolución con novedad",

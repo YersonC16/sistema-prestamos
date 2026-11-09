@@ -1,13 +1,21 @@
 export type AssetType = "equipo" | "herramienta" | "otro";
-export type AssetStatus = "disponible" | "prestado" | "mantenimiento";
+export type AssetStatus = "disponible" | "prestado" | "mantenimiento" | "baja";
 
 export interface Asset {
   id: number;
   name: string;
   code: string | null;
+  brand: string | null;
+  serial_number: string | null;
   asset_type: AssetType;
   status: AssetStatus;
   description: string | null;
+}
+
+export interface AssetDetail extends Asset {
+  decommissioned_at: string | null;
+  decommission_reason: string | null;
+  decommissioned_by: string | null;
 }
 
 export interface AssetCreatePayload {
@@ -15,6 +23,12 @@ export interface AssetCreatePayload {
   asset_type: AssetType;
   description?: string;
   code?: string;
+  brand?: string;
+  serial_number?: string;
+}
+
+export interface AssetDecommissionPayload {
+  reason: string;
 }
 
 export interface AssetSummary {
@@ -22,6 +36,7 @@ export interface AssetSummary {
   disponible: number;
   prestado: number;
   mantenimiento: number;
+  baja: number;
 }
 
 export interface AuditEntry {

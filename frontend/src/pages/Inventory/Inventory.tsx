@@ -8,18 +8,18 @@ import Icon from "@/components/common/Icon";
 import Input from "@/components/common/Input";
 import Modal from "@/components/common/Modal";
 import PageHeader from "@/components/common/PageHeader";
+import Pagination from "@/components/common/Pagination";
 import Select from "@/components/common/Select";
 import { SkeletonTable } from "@/components/common/Skeleton";
 import Table from "@/components/common/Table";
 import type { TableColumn } from "@/components/common/Table";
 import { useAuth } from "@/hooks/useAuth";
 import { useFetch } from "@/hooks/useFetch";
+import { usePagination } from "@/hooks/usePagination";
 import { assetService } from "@/services/assetService";
 import type { Asset, AssetStatus, AssetType } from "@/types/asset";
 import { getErrorMessage } from "@/utils/errors";
 import { ASSET_STATUS, ASSET_TYPE_LABEL } from "@/utils/labels";
-import Pagination from "@/components/common/Pagination";
-import { usePagination } from "@/hooks/usePagination";
 
 const columns: TableColumn<Asset>[] = [
   { key: "code", label: "Código" },
@@ -28,6 +28,8 @@ const columns: TableColumn<Asset>[] = [
     label: "Nombre",
     render: (asset) => <span className="cell-strong">{asset.name}</span>,
   },
+  { key: "brand", label: "Marca" },
+  { key: "serial_number", label: "N.º de serie" },
   {
     key: "asset_type",
     label: "Tipo",
@@ -42,7 +44,6 @@ const columns: TableColumn<Asset>[] = [
       </Badge>
     ),
   },
-  { key: "description", label: "Descripción" },
 ];
 
 function Inventory() {
@@ -66,6 +67,8 @@ function Inventory() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [brand, setBrand] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
   const [assetType, setAssetType] = useState<AssetType>("herramienta");
   const [description, setDescription] = useState("");
   const [formError, setFormError] = useState("");
@@ -73,14 +76,20 @@ function Inventory() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (assets ?? []).filter(
-      (asset) =>
-        (!statusFilter || asset.status === statusFilter) &&
-        (!typeFilter || asset.asset_type === typeFilter) &&
-        (!term ||
-          asset.name.toLowerCase().includes(term) ||
-          (asset.code ?? "").toLowerCase().includes(term)),
-    );
+    return (assets ?? []).filter((asset) => {
+      // Sin filtro de estado, los dados de baja no aparecen: se ven filtrando por ese estado
+      const statusOk = statusFilter
+        ? asset.status === statusFilter
+        : asset.status !== "baja";
+      const typeOk = !typeFilter || asset.asset_type === typeFilter;
+      const searchOk =
+        !term ||
+        asset.name.toLowerCase().includes(term) ||
+        (asset.code ?? "").toLowerCase().includes(term) ||
+        (asset.brand ?? "").toLowerCase().includes(term) ||
+        (asset.serial_number ?? "").toLowerCase().includes(term);
+      return statusOk && typeOk && searchOk;
+    });
   }, [assets, search, statusFilter, typeFilter]);
 
   const { page, setPage, totalPages, pageItems, total } = usePagination(
@@ -92,6 +101,8 @@ function Inventory() {
     setIsModalOpen(false);
     setName("");
     setCode("");
+    setBrand("");
+    setSerialNumber("");
     setAssetType("herramienta");
     setDescription("");
     setFormError("");
@@ -110,6 +121,8 @@ function Inventory() {
         name: name.trim(),
         asset_type: assetType,
         code: code.trim() || undefined,
+        brand: brand.trim() || undefined,
+        serial_number: serialNumber.trim() || undefined,
         description: description.trim() || undefined,
       });
       closeModal();
@@ -125,7 +138,7 @@ function Inventory() {
     <div className="page">
       <PageHeader
         title="Inventario"
-        subtitle="Equipos y herramientas de la sede. Toca un activo para ver su ficha y su historial."
+        subtitle="Equipos y herramientas de la sede. Toca un activo para ver su ficha y su historial. Los dados de baja se ven filtrando por ese estado."
         actions={
           canManage ? (
             <Button onClick={() => setIsModalOpen(true)}>
@@ -138,7 +151,7 @@ function Inventory() {
       <div className="toolbar">
         <Input
           label="Buscar"
-          placeholder="Nombre o código"
+          placeholder="Nombre, código, marca o serie"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -147,10 +160,11 @@ function Inventory() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as AssetStatus | "")}
         >
-          <option value="">Todos</option>
+          <option value="">Todos (sin dados de baja)</option>
           <option value="disponible">Disponible</option>
           <option value="prestado">Prestado</option>
           <option value="mantenimiento">Mantenimiento</option>
+          <option value="baja">Dado de baja</option>
         </Select>
         <Select
           label="Tipo"
@@ -165,24 +179,26 @@ function Inventory() {
       </div>
 
       <Card>
-        {isLoading && <SkeletonTable rows={5} columns={5} />}
+        {isLoading && <SkeletonTable rows={5} columns={6} />}
         {error && <Alert>{error}</Alert>}
         {!isLoading && !error && (
-          <Table<Asset>
-            columns={columns}
-            data={pageItems}
-            keyExtractor={(asset) => asset.id}
-            onRowClick={(asset) => navigate(`/inventario/${asset.id}`)}
-            emptyMessage="No hay activos que coincidan con la búsqueda"
-          />
+          <>
+            <Table<Asset>
+              columns={columns}
+              data={pageItems}
+              keyExtractor={(asset) => asset.id}
+              onRowClick={(asset) => navigate(`/inventario/${asset.id}`)}
+              emptyMessage="No hay activos que coincidan con la búsqueda"
+            />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              pageSize={10}
+              onChange={setPage}
+            />
+          </>
         )}
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          pageSize={10}
-          onChange={setPage}
-        />
       </Card>
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title="Registrar activo">
@@ -195,7 +211,19 @@ function Inventory() {
             required
           />
           <Input
-            label="Código (opcional, único)"
+            label="Marca (opcional)"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            placeholder="Ej. Dewalt"
+          />
+          <Input
+            label="Número de serie (opcional)"
+            value={serialNumber}
+            onChange={(e) => setSerialNumber(e.target.value)}
+            placeholder="Ej. SN-0001"
+          />
+          <Input
+            label="Código interno (opcional, único)"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="Ej. TAL-001"
@@ -213,7 +241,7 @@ function Inventory() {
             label="Descripción (opcional)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Marca, modelo, detalles"
+            placeholder="Modelo, detalles"
           />
           {formError && <Alert>{formError}</Alert>}
           <div className="form-actions">

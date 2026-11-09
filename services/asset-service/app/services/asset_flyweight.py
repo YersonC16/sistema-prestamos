@@ -1,202 +1,70 @@
-
-"""
-Implementación del patrón de diseño Flyweight para los activos.
-
-Objetivo:
-Reducir la duplicación de información compartiendo los datos
-comunes de los modelos de herramientas y activos.
-
-Estado intrínseco (compartido):
-    - name
-    - asset_type
-    - description
-
-Estado extrínseco (propio de cada activo):
-    - id
-    - code
-    - status
-
-La fábrica administra los modelos compartidos y el catálogo
-organiza los activos que utilizan dichos modelos.
-"""
-
 import threading
 
-# Importamos los tipos y estados definidos en el modelo de activos.
 from app.models.asset import AssetStatus, AssetType
 
+SharedKey = tuple[str, AssetType, str | None, str | None]  # nombre, tipo, descripción, marca
 
-# Definimos el tipo de clave utilizado para identificar un modelo.
-# Un modelo se identifica por su nombre, tipo y descripción.
-# La descripción puede ser None.
-SharedKey = tuple[str, AssetType, str | None]
-
-
-# ============================================================
-# 1. FLYWEIGHT: MODELO COMPARTIDO
-# ============================================================
 
 class AssetModelFlyweight:
-    """
-    Representa el estado intrínseco de un modelo de activo.
+    """Flyweight: guarda el estado INTRÍNSECO (compartido) de un modelo: nombre,
+    tipo, descripción y marca. Es inmutable porque lo comparten muchos activos a la vez."""
 
-    Los atributos name, asset_type y description son compartidos
-    por todos los activos que utilizan el mismo modelo.
+    __slots__ = ("name", "asset_type", "description", "brand")
 
-    La clase es inmutable para evitar que una modificación afecte
-    accidentalmente a muchos activos al mismo tiempo.
-    """
-
-    # __slots__ declara los atributos permitidos y evita que cada
-    # instancia necesite un diccionario __dict__ para almacenarlos.
-    __slots__ = ("name", "asset_type", "description")
-
-    def __init__(
-        self,
-        name: str,
-        asset_type: AssetType,
-        description: str | None,
-    ):
-        # Utilizamos object.__setattr__ para asignar los valores
-        # durante la construcción, evitando el __setattr__ propio.
+    def __init__(self, name: str, asset_type: AssetType, description: str | None, brand: str | None = None):
         object.__setattr__(self, "name", name)
         object.__setattr__(self, "asset_type", asset_type)
         object.__setattr__(self, "description", description)
+        object.__setattr__(self, "brand", brand)
 
     def __setattr__(self, key, value):
-        """
-        Impide cambiar los atributos después de la construcción.
+        raise AttributeError("Un flyweight es inmutable: se comparte entre muchos activos")
 
-        Como el modelo puede ser compartido, modificarlo podría
-        alterar la información observada por varios activos.
-        """
-        raise AttributeError(
-            "Un flyweight es inmutable: "
-            "se comparte entre muchos activos"
-        )
-
-    def describe(
-        self,
-        asset_id: int,
-        code: str | None,
-        status: AssetStatus,
-    ) -> dict:
-        """
-        Combina el estado intrínseco compartido con el estado
-        extrínseco recibido desde un activo específico.
-
-        Los datos particulares llegan como parámetros, por lo que
-        no es necesario almacenarlos dentro del modelo compartido.
-        """
+    def describe(self, asset_id: int, code: str | None, status: AssetStatus, serial_number: str | None = None) -> dict:
+        """Operación del flyweight: recibe el estado EXTRÍNSECO por parámetro
+        y lo combina con el estado compartido."""
         return {
-            # Datos particulares del activo recibido.
             "id": asset_id,
-            "code": code,
-            "status": status,
-
-            # Datos del modelo compartido.
             "name": self.name,
+            "code": code,
+            "brand": self.brand,
+            "serial_number": serial_number,
             "asset_type": self.asset_type,
+            "status": status,
             "description": self.description,
         }
 
 
-# ============================================================
-# 2. FACTORY: FÁBRICA DE MODELOS COMPARTIDOS
-# ============================================================
-
 class AssetModelFactory:
-    """
-    Administra los objetos AssetModelFlyweight.
-
-    Antes de crear un modelo nuevo, comprueba si ya existe uno
-    con la misma clave. Si existe, devuelve el objeto compartido.
-
-    El diccionario _models mantiene las referencias a los modelos
-    creados para poder reutilizarlos posteriormente.
-    """
+    """Fábrica flyweight: decide si reutiliza un flyweight existente o crea uno.
+    Usa un Lock porque FastAPI atiende peticiones en varios hilos."""
 
     def __init__(self):
-        # Diccionario que relaciona cada clave con su modelo.
-        # Ejemplo:
-        # (nombre, tipo, descripción) -> objeto Flyweight.
         self._models: dict[SharedKey, AssetModelFlyweight] = {}
-
-        # Lock para proteger la creación de modelos cuando varias
-        # operaciones concurrentes acceden a la fábrica.
         self._lock = threading.Lock()
 
     def get_model(
-        self,
-        name: str,
-        asset_type: AssetType,
-        description: str | None,
+        self, name: str, asset_type: AssetType, description: str | None, brand: str | None = None
     ) -> AssetModelFlyweight:
-        """
-        Busca un modelo existente o crea uno nuevo.
-
-        Si dos activos tienen la misma clave, ambos reciben
-        una referencia al mismo objeto AssetModelFlyweight.
-        """
-
-        # Construimos la clave a partir de los datos intrínsecos.
-        key: SharedKey = (name, asset_type, description)
-
-        # Primera consulta sin bloquear.
-        # Si el modelo ya existe, no necesitamos adquirir el Lock.
+        key: SharedKey = (name, asset_type, description, brand)
         model = self._models.get(key)
-
         if model is None:
-            # Protegemos la sección de creación frente al acceso
-            # concurrente de otros hilos.
             with self._lock:
-
-                # Comprobamos nuevamente el diccionario.
-                # Otro hilo pudo crear el modelo mientras esperábamos.
-                model = self._models.get(key)
-
+                model = self._models.get(key)  # otro hilo pudo crearlo mientras esperábamos
                 if model is None:
-                    # Creamos el modelo únicamente si no existe.
-                    model = AssetModelFlyweight(
-                        name,
-                        asset_type,
-                        description,
-                    )
-
-                    # Guardamos la referencia para reutilizarla.
+                    model = AssetModelFlyweight(name, asset_type, description, brand)
                     self._models[key] = model
-
-        # Devolvemos el modelo existente o el recién creado.
         return model
 
     def count(self) -> int:
-        """
-        Devuelve la cantidad de modelos compartidos registrados.
-
-        No cuenta los activos individuales, sino las entradas
-        existentes en el diccionario de modelos.
-        """
         return len(self._models)
 
 
-# ============================================================
-# 3. OBJETO CONTEXTUAL: ACTIVO INDIVIDUAL
-# ============================================================
-
 class AssetItem:
-    """
-    Representa un activo concreto de la empresa.
+    """Objeto contextual: solo el estado EXTRÍNSECO (único de cada activo: id,
+    código, estado y número de serie) más una referencia al flyweight compartido."""
 
-    Cada activo conserva su propio estado extrínseco y una
-    referencia al modelo Flyweight que comparte con otros activos.
-
-    Ejemplo:
-    Dos taladros pueden compartir nombre, tipo y descripción,
-    pero tener códigos, identificadores y estados diferentes.
-    """
-
-    # Limitamos los atributos almacenados en cada objeto.
-    __slots__ = ("id", "code", "status", "model")
+    __slots__ = ("id", "code", "status", "serial_number", "model")
 
     def __init__(
         self,
@@ -204,85 +72,33 @@ class AssetItem:
         code: str | None,
         status: AssetStatus,
         model: AssetModelFlyweight,
+        serial_number: str | None = None,
     ):
-        # Información particular de este activo.
         self.id = asset_id
         self.code = code
         self.status = status
-
-        # Referencia al modelo compartido.
-        # Varios AssetItem pueden apuntar al mismo objeto.
+        self.serial_number = serial_number
         self.model = model
 
     def summary(self) -> dict:
-        """
-        Genera el resumen del activo.
+        return self.model.describe(self.id, self.code, self.status, self.serial_number)
 
-        Delegamos en el modelo compartido la combinación de los
-        datos intrínsecos y los datos extrínsecos de este activo.
-        """
-        return self.model.describe(
-            self.id,
-            self.code,
-            self.status,
-        )
-
-
-# ============================================================
-# 4. CATÁLOGO: ADMINISTRADOR DE ACTIVOS
-# ============================================================
 
 class AssetCatalog:
-    """
-    Organiza una colección de activos que utilizan Flyweight.
+    """Cliente del flyweight: arma la colección de activos pidiendo los
+    modelos a la fábrica."""
 
-    El catálogo recibe los datos de cada activo, solicita el modelo
-    correspondiente a la fábrica y almacena el objeto contextual.
-    """
-
-    def __init__(
-        self,
-        factory: AssetModelFactory | None = None,
-    ):
-        # Utilizamos la fábrica recibida o creamos una nueva.
-        # La fábrica permite compartir modelos entre los activos
-        # que se incorporan a este catálogo.
+    def __init__(self, factory: AssetModelFactory | None = None):
         self._factory = factory or AssetModelFactory()
-
-        # Lista que contiene los objetos AssetItem individuales.
         self._items: list[AssetItem] = []
 
     @classmethod
-    def from_rows(
-        cls,
-        rows,
-        factory: AssetModelFactory | None = None,
-    ) -> "AssetCatalog":
-        """
-        Construye un catálogo a partir de filas de datos.
-
-        Se espera que cada fila tenga los atributos:
-        id, code, status, name, asset_type y description.
-
-        Este método facilita cargar registros provenientes
-        de una consulta a la base de datos.
-        """
-
-        # Creamos el catálogo con la fábrica indicada, si existe.
+    def from_rows(cls, rows, factory: AssetModelFactory | None = None) -> "AssetCatalog":
         catalog = cls(factory)
-
-        # Recorremos las filas y agregamos cada activo.
         for row in rows:
             catalog.add(
-                row.id,
-                row.code,
-                row.status,
-                row.name,
-                row.asset_type,
-                row.description,
+                row.id, row.code, row.status, row.name, row.asset_type, row.description, row.brand, row.serial_number
             )
-
-        # Devolvemos el catálogo con todos los activos procesados.
         return catalog
 
     def add(
@@ -293,75 +109,25 @@ class AssetCatalog:
         name: str,
         asset_type: AssetType,
         description: str | None,
+        brand: str | None = None,
+        serial_number: str | None = None,
     ) -> AssetItem:
-        """
-        Agrega un activo a la colección.
-
-        Primero obtiene el modelo compartido de la fábrica.
-        Después crea un objeto AssetItem con los datos particulares
-        y la referencia a dicho modelo.
-        """
-
-        # Reutilizamos el modelo si ya existe.
-        # Solo se crea un Flyweight nuevo cuando la clave no existe.
-        model = self._factory.get_model(
-            name,
-            asset_type,
-            description,
-        )
-
-        # Creamos el objeto individual con su estado extrínseco.
-        item = AssetItem(
-            asset_id,
-            code,
-            status,
-            model,
-        )
-
-        # Guardamos el activo en el catálogo.
+        model = self._factory.get_model(name, asset_type, description, brand)
+        item = AssetItem(asset_id, code, status, model, serial_number)
         self._items.append(item)
-
-        # Devolvemos el objeto creado.
         return item
 
     def summaries(self) -> list[dict]:
-        """
-        Devuelve los resúmenes de todos los activos del catálogo.
-
-        Cada resumen combina la información individual del activo
-        con la información del modelo compartido.
-        """
-        return [
-            item.summary()
-            for item in self._items
-        ]
+        return [item.summary() for item in self._items]
 
     @property
     def items(self) -> list[AssetItem]:
-        """
-        Permite consultar la lista de activos almacenados.
-
-        Se devuelve la lista interna, no una copia.
-        Por tanto, quien la recibe puede modificarla.
-        """
         return self._items
 
     @property
     def total_items(self) -> int:
-        """
-        Devuelve el número total de activos individuales.
-
-        Cada AssetItem cuenta como un activo, incluso cuando
-        comparte su modelo con muchos otros objetos.
-        """
         return len(self._items)
 
     @property
     def shared_models(self) -> int:
-        """
-        Devuelve la cantidad de modelos Flyweight registrados.
-
-        Por ejemplo, el catálogo puede contener 100.000 activos
-        y solamente 36 modelos compartidos.
-        """
         return self._factory.count()

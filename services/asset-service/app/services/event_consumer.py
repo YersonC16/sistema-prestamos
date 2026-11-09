@@ -46,9 +46,14 @@ def _apply_event(routing_key: str, data: dict) -> None:
     db = SessionLocal()
     try:
         asset = db.query(Asset).filter(Asset.id == data.get("asset_id")).first()
+        
         if asset is None:
             print(f"[broker] Evento {routing_key} ignorado: el activo {data.get('asset_id')} no existe")
             return
+        if asset.status == AssetStatus.BAJA:
+            print(f"[broker] Evento {routing_key} ignorado: el activo {asset.id} está dado de baja")
+            return
+        
 
         actor = data.get("registered_by") or data.get("returned_by") or "Sistema"
 

@@ -13,6 +13,7 @@ export const ASSET_STATUS: Record<AssetStatus, LabelTone> = {
   disponible: { label: "Disponible", tone: "success" },
   prestado: { label: "Prestado", tone: "info" },
   mantenimiento: { label: "Mantenimiento", tone: "warning" },
+  baja: { label: "Dado de baja", tone: "neutral" },
 };
 
 export const ASSET_TYPE_LABEL: Record<AssetType, string> = {
@@ -80,6 +81,7 @@ export function notificationStatus(status: string): LabelTone {
 
 export const EVENT_OPTIONS = [
   { value: "activo_registrado", label: "Ingreso de un activo" },
+  { value: "activo_dado_de_baja", label: "Activo dado de baja" },
   { value: "prestamo_creado", label: "Préstamo registrado" },
   { value: "prestamo_devuelto", label: "Devolución en buen estado" },
   { value: "devolucion_con_novedad", label: "Devolución con novedad" },
@@ -94,6 +96,7 @@ export const EVENT_OPTIONS = [
 
 const ACTIONS: Record<string, LabelTone> = {
   activo_registrado: { label: "Activo registrado", tone: "info" },
+  activo_dado_de_baja: { label: "Activo dado de baja", tone: "danger" },
   prestamo_creado: { label: "Préstamo registrado", tone: "info" },
   prestamo_devuelto: { label: "Devolución registrada", tone: "success" },
   devolucion_con_novedad: { label: "Devolución con novedad", tone: "warning" },

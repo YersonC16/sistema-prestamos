@@ -16,10 +16,10 @@ import StartMaintenanceModal from "@/pages/Maintenance/StartMaintenanceModal";
 import { assetService } from "@/services/assetService";
 import { loanService } from "@/services/loanService";
 import { maintenanceService } from "@/services/maintenanceService";
-import type { Asset, AuditEntry } from "@/types/asset";
+import type { AssetDetail as AssetDetailData, AuditEntry } from "@/types/asset";
 import type { Loan } from "@/types/loan";
 import type { MaintenanceRecord } from "@/types/maintenance";
-import { formatDate, isOverdue } from "@/utils/format";
+import { formatDate, formatDateTime, isOverdue } from "@/utils/format";
 import {
   ASSET_STATUS,
   ASSET_TYPE_LABEL,
@@ -28,6 +28,7 @@ import {
   MAINTENANCE_TYPE_LABEL,
 } from "@/utils/labels";
 import { toTimelineItems } from "@/utils/timeline";
+import DecommissionModal from "./DecommissionModal";
 
 const loanColumns: TableColumn<Loan>[] = [
   {
@@ -100,6 +101,7 @@ function AssetDetail() {
   const canManage =
     user?.role === "administrador" || user?.role === "almacenista";
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
+  const [isDecommissionOpen, setIsDecommissionOpen] = useState(false);
 
   const fetchAsset = useCallback(
     () => assetService.getById(assetId),
@@ -122,7 +124,7 @@ function AssetDetail() {
     [assetId],
   );
 
-  const asset = useFetch<Asset>(fetchAsset);
+  const asset = useFetch<AssetDetailData>(fetchAsset);
   const holder = useFetch<Loan | null>(fetchHolder);
   const history = useFetch<AuditEntry[]>(fetchHistory);
   const loans = useFetch<Loan[]>(fetchLoans);
@@ -162,22 +164,45 @@ function AssetDetail() {
                 : "Sin código asignado"
             }
             actions={
-              canManage && asset.data.status === "disponible" ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => setIsMaintenanceOpen(true)}
-                >
-                  <Icon name="tool" size={16} /> Enviar a mantenimiento
-                </Button>
+              canManage &&
+              (asset.data.status === "disponible" ||
+                asset.data.status === "mantenimiento") ? (
+                <>
+                  {asset.data.status === "disponible" && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsMaintenanceOpen(true)}
+                    >
+                      <Icon name="tool" size={16} /> Enviar a mantenimiento
+                    </Button>
+                  )}
+                  <Button
+                    variant="danger"
+                    onClick={() => setIsDecommissionOpen(true)}
+                  >
+                    Dar de baja
+                  </Button>
+                </>
               ) : null
             }
           />
+
+          {canManage && asset.data.status === "prestado" && (
+            <Alert tone="info">
+              Este activo está prestado. Para darlo de baja o enviarlo a
+              mantenimiento, primero debe devolverse.
+            </Alert>
+          )}
 
           <div className="grid-2">
             <Card title="Datos del activo">
               <dl className="definition-list">
                 <dt>Tipo</dt>
                 <dd>{ASSET_TYPE_LABEL[asset.data.asset_type]}</dd>
+                <dt>Marca</dt>
+                <dd>{asset.data.brand ?? "—"}</dd>
+                <dt>N.º de serie</dt>
+                <dd>{asset.data.serial_number ?? "—"}</dd>
                 <dt>Estado</dt>
                 <dd>
                   <Badge tone={ASSET_STATUS[asset.data.status].tone}>
@@ -189,51 +214,66 @@ function AssetDetail() {
               </dl>
             </Card>
 
-            <Card title="Responsable actual">
-              {holder.isLoading && <Skeleton height="72px" />}
-              {holder.error && <Alert>{holder.error}</Alert>}
-              {!holder.isLoading && !holder.error && holder.data && (
+            {asset.data.status === "baja" ? (
+              <Card title="Baja del activo">
                 <dl className="definition-list">
-                  <dt>Responsable</dt>
-                  <dd>{holder.data.responsible_name}</dd>
-                  <dt>Desde</dt>
-                  <dd>{formatDate(holder.data.loan_date)}</dd>
-                  <dt>Devolución</dt>
-                  <dd
-                    className={
-                      isOverdue(
-                        holder.data.expected_return_date,
-                        holder.data.status,
-                      )
-                        ? "text-danger"
-                        : undefined
-                    }
-                  >
-                    {formatDate(holder.data.expected_return_date)}
-                  </dd>
-                  <dt>Entregado por</dt>
-                  <dd>{holder.data.registered_by_name ?? "—"}</dd>
+                  <dt>Fecha</dt>
+                  <dd>{formatDateTime(asset.data.decommissioned_at)}</dd>
+                  <dt>Motivo</dt>
+                  <dd>{asset.data.decommission_reason ?? "—"}</dd>
+                  <dt>Registrada por</dt>
+                  <dd>{asset.data.decommissioned_by ?? "—"}</dd>
                 </dl>
-              )}
-              {!holder.isLoading &&
-                !holder.error &&
-                !holder.data &&
-                openMaintenance && (
-                  <p>
-                    En mantenimiento, asignado a{" "}
-                    <strong>{openMaintenance.assigned_to}</strong> desde el{" "}
-                    {formatDate(openMaintenance.started_at)}.
-                  </p>
+              </Card>
+            ) : (
+              <Card title="Responsable actual">
+                {holder.isLoading && <Skeleton height="72px" />}
+                {holder.error && <Alert>{holder.error}</Alert>}
+                {!holder.isLoading && !holder.error && holder.data && (
+                  <dl className="definition-list">
+                    <dt>Responsable</dt>
+                    <dd>{holder.data.responsible_name}</dd>
+                    <dt>Desde</dt>
+                    <dd>{formatDate(holder.data.loan_date)}</dd>
+                    <dt>Devolución</dt>
+                    <dd
+                      className={
+                        isOverdue(
+                          holder.data.expected_return_date,
+                          holder.data.status,
+                        )
+                          ? "text-danger"
+                          : undefined
+                      }
+                    >
+                      {formatDate(holder.data.expected_return_date)}
+                    </dd>
+                    <dt>Entregado por</dt>
+                    <dd>{holder.data.registered_by_name ?? "—"}</dd>
+                  </dl>
                 )}
-              {!holder.isLoading &&
-                !holder.error &&
-                !holder.data &&
-                !openMaintenance && (
-                  <p className="muted">
-                    Sin préstamo abierto: el activo está en el almacén.
-                  </p>
-                )}
-            </Card>
+                {!holder.isLoading &&
+                  !holder.error &&
+                  !holder.data &&
+                  openMaintenance && (
+                    <p>
+                      En mantenimiento{" "}
+                      {openMaintenance.location === "interno"
+                        ? `con ${openMaintenance.assigned_to}`
+                        : `en ${openMaintenance.provider_name}`}{" "}
+                      desde el {formatDate(openMaintenance.started_at)}.
+                    </p>
+                  )}
+                {!holder.isLoading &&
+                  !holder.error &&
+                  !holder.data &&
+                  !openMaintenance && (
+                    <p className="muted">
+                      Sin préstamo abierto: el activo está en el almacén.
+                    </p>
+                  )}
+              </Card>
+            )}
           </div>
 
           <Card title="Línea de tiempo">
@@ -274,6 +314,13 @@ function AssetDetail() {
             onCreated={refreshAll}
             assets={[asset.data]}
             defaultAssetId={asset.data.id}
+          />
+
+          <DecommissionModal
+            asset={asset.data}
+            isOpen={isDecommissionOpen}
+            onClose={() => setIsDecommissionOpen(false)}
+            onDone={refreshAll}
           />
         </>
       )}

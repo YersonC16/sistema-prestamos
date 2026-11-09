@@ -5,23 +5,39 @@ class AssetCreator:
     """Contrato de todo creador de activos. La abstracción se fuerza a mano:
     si una subclase no sobrescribe create(), falla al usarla."""
 
-    def create(self, name: str, description: str | None, code: str | None = None) -> Asset:
+    def create(
+        self,
+        name: str,
+        description: str | None,
+        code: str | None = None,
+        brand: str | None = None,
+        serial_number: str | None = None,
+    ) -> Asset:
         raise NotImplementedError("Toda subclase de AssetCreator debe implementar el método create()")
 
 
 class EquipoCreator(AssetCreator):
-    def create(self, name: str, description: str | None, code: str | None = None) -> Asset:
-        return Asset(name=name, description=description, code=code, asset_type=AssetType.EQUIPO, status=AssetStatus.DISPONIBLE)
+    def create(self, name, description, code=None, brand=None, serial_number=None) -> Asset:
+        return Asset(
+            name=name, description=description, code=code, brand=brand, serial_number=serial_number,
+            asset_type=AssetType.EQUIPO, status=AssetStatus.DISPONIBLE,
+        )
 
 
 class HerramientaCreator(AssetCreator):
-    def create(self, name: str, description: str | None, code: str | None = None) -> Asset:
-        return Asset(name=name, description=description, code=code, asset_type=AssetType.HERRAMIENTA, status=AssetStatus.DISPONIBLE)
+    def create(self, name, description, code=None, brand=None, serial_number=None) -> Asset:
+        return Asset(
+            name=name, description=description, code=code, brand=brand, serial_number=serial_number,
+            asset_type=AssetType.HERRAMIENTA, status=AssetStatus.DISPONIBLE,
+        )
 
 
 class OtroCreator(AssetCreator):
-    def create(self, name: str, description: str | None, code: str | None = None) -> Asset:
-        return Asset(name=name, description=description, code=code, asset_type=AssetType.OTRO, status=AssetStatus.DISPONIBLE)
+    def create(self, name, description, code=None, brand=None, serial_number=None) -> Asset:
+        return Asset(
+            name=name, description=description, code=code, brand=brand, serial_number=serial_number,
+            asset_type=AssetType.OTRO, status=AssetStatus.DISPONIBLE,
+        )
 
 
 class AssetFactory:
@@ -35,9 +51,15 @@ class AssetFactory:
 
     @classmethod
     def create_asset(
-        cls, asset_type: AssetType, name: str, description: str | None = None, code: str | None = None
+        cls,
+        asset_type: AssetType,
+        name: str,
+        description: str | None = None,
+        code: str | None = None,
+        brand: str | None = None,
+        serial_number: str | None = None,
     ) -> Asset:
         creator = cls._creators.get(asset_type)
         if not creator:
             raise ValueError(f"Tipo de activo no soportado: {asset_type}")
-        return creator.create(name, description, code)
+        return creator.create(name, description, code, brand, serial_number)

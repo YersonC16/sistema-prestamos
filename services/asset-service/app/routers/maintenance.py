@@ -25,6 +25,8 @@ def start_maintenance(payload: MaintenanceCreate, db: Session = Depends(get_db),
     asset = db.query(Asset).filter(Asset.id == payload.asset_id).first()
     if asset is None:
         raise HTTPException(404, "Activo no encontrado")
+    if asset.status == AssetStatus.BAJA:
+        raise HTTPException(400, "El activo está dado de baja y no puede enviarse a mantenimiento")
     if asset.status == AssetStatus.PRESTADO:
         raise HTTPException(400, "El activo está prestado: debe devolverse antes de enviarlo a mantenimiento")
 
@@ -58,6 +60,7 @@ def start_maintenance(payload: MaintenanceCreate, db: Session = Depends(get_db),
     record_audit(db, "asset", asset.id, "mantenimiento_iniciado", detail, user.full_name, user.role.value)
     emit_event("mantenimiento_iniciado", asset_id=asset.id, asset_name=asset.name, actor=user.full_name, detail=detail)
     return maintenance
+
 
 
 @router.put("/{maintenance_id}/escalate", response_model=MaintenanceResponse)
